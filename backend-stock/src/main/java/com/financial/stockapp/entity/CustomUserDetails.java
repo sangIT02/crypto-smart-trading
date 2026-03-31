@@ -19,9 +19,10 @@ public class CustomUserDetails implements UserDetails {
     private User user;
 
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.getName().toString())) // Lấy tên role ném vào SimpleGrantedAuthority
-                .collect(Collectors.toList());
+        if (user.getRole() == null) {
+            return Collections.emptyList();
+        }
+        return List.of(new SimpleGrantedAuthority(user.getRole().getName()));
     }
 
     public String getPassword() {

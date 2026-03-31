@@ -1,73 +1,60 @@
 package com.financial.stockapp.entity;
 
-import com.financial.stockapp.entity.enums.Enum;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "auth_users")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-@EqualsAndHashCode(callSuper = true, exclude = "roles") // Tránh vòng lặp vô tận khi dùng Lombok
-public class User extends BaseEntity{
+@Table(name = "users")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
-    @Column(unique = true)
+    @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    @Column(unique = true, length = 20)
-    private String phone;
+    @Column(nullable = false, unique = true, length = 50)
+    private String username;
 
-    @Column(name = "password_hash")
-    private String passwordHash;
+    @Column(length = 255)
+    private String password; // NULL nếu đăng nhập Google
 
-    @Column(name = "full_name")
+    @Column(name = "full_name", length = 100)
     private String fullName;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "auth_provider")
-    @Builder.Default
-    private Enum.AuthProvider authProvider = Enum.AuthProvider.LOCAL;
+    @Column(name = "phone")
+    private String phone;
 
-    @Column(name = "social_id")
-    private String socialId;
+    @Column(name = "avatar_url", length = 255)
+    private String avatarUrl;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    private Role role;
+
+    @Column(name = "auth_provider", length = 20)
+    private String authProvider; // 'LOCAL', 'GOOGLE'
+
+    @Column(name = "provider_id", length = 100)
+    private String providerId; // ID từ Google
+
+    @Column(name = "email_verified")
+    private Boolean emailVerified = false;
 
     @Column(name = "is_active")
-    @Builder.Default
     private Boolean isActive = true;
 
-    @Column(name = "is_kyc_verified")
-    @Builder.Default
-    private Boolean isKycVerified = false;
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 
-    // Quan hệ 1-1 với Profile
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @ToString.Exclude
-    private UserProfile profile;
-
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "auth_user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    @Builder.Default
-    private Set<Role> roles = new HashSet<>();
-
-
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    @ToString.Exclude // 👈 Làm tương tự với Wallet
-    private Wallet wallet;
-
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    @ToString.Exclude // 👈 Làm tương tự với IdentityCard
-    private IdentityCard identityCard;
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

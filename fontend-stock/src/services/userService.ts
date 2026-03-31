@@ -1,12 +1,21 @@
 // File: src/services/userService.js
 import axios from "axios";
 
-interface ApiResponse {
+
+export interface PageData<T> {
+    content: T[];
+    totalPages: number;
+    totalElements: number;
+    last: boolean;
+    size: number;
+    number: number;
+    // ... bạn có thể thêm các trường khác nếu cần dùng
+}
+export interface ApiResponse<T> {
     code: number;
     message: string;
-    data?: any;
+    data: PageData<T>;
 }
-
 
 // 1. Cấu hình đường dẫn gốc của Backend Spring Boot
 const API_URL = "http://localhost:8080/api/users"; 
@@ -25,16 +34,12 @@ const userService = {
         return axios.post(`${API_URL}/login`, { phone_number, password });
     },
     
-    verifyOtp: (email: string, otp: string) => {
-        const body = {email, otp};
-        // const config = {
-        //     headers:{
-        //         'Authorization': `Bearer ${token}`, // Token thường có tiền tố Bearer
-        //         'Content-Type': 'application/json'
-        //     }
-        // }
+    verifyOtp: (email: string,password:string, otp: string) => {
+        const body = {email,password, otp};
         return axios.post(`${API_URL}/verify-otp`,body);
     }
+
+    
 
 
 };

@@ -3,11 +3,12 @@ import { userService } from "../services";
 
 export type OtpModalProps = {
     email: string;
+    pass: string
     show: boolean;
     onClose: () => void;
 };
 
-export const OtpModal = ({ email, show, onClose }: OtpModalProps) => {
+export const OtpModal = ({ email, pass, show, onClose }: OtpModalProps) => {
     const [otp, setOtp] = useState<string>("");
     const [countdown, setCountdown] = useState<number>(60 * 3); // Bắt đầu đếm ngược 60s ngay khi hiện form
     const formatTime = (seconds: number) => {
@@ -23,7 +24,7 @@ export const OtpModal = ({ email, show, onClose }: OtpModalProps) => {
     const verifyAndCreateUser = async () => {
         // e.preventDefault();
         try {
-            const response = await userService.verifyOtp(email, otp);
+            const response = await userService.verifyOtp(email,pass, otp);
             console.log(response)
             if (response.data?.code === 200) {
                 alert("Xác thực thành công!");

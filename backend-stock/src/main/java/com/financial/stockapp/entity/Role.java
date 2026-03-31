@@ -1,15 +1,12 @@
 package com.financial.stockapp.entity;
 
-import com.financial.stockapp.entity.enums.Enum;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
-@Table(name = "auth_roles")
-@Data
+@Table(name = "roles")
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -19,9 +16,6 @@ public class Role {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20, unique = true)
-    private Enum.RoleType name;
-
-    private String description;
+    @Column(nullable = false, unique = true, length = 20)
+    private String name; // 'ADMIN', 'USER'
 }

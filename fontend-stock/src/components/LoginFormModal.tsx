@@ -11,8 +11,6 @@ interface UserInfo {
     fullname: string | null;
     email: string;
     auth_provider: 'LOCAL' | 'GOOGLE' | null;
-    phone: string;
-    _kyc_verify: boolean;
 }
 
 // Cấu trúc phản hồi từ API (LoginResponse)
@@ -21,6 +19,7 @@ export interface LoginResponse {
     message: string;
     data: {
         access_token: string;
+        refresh_token: string;
         token_type: string;
         user_infor: UserInfo;
         expires_in: number;
@@ -28,7 +27,7 @@ export interface LoginResponse {
 }
 
 export const LoginFormModal = ({ show, onClose }: LoginModalProps) => {
-    const [phone, setPhone] = useState<string>("");
+    const [email, setEmail] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [showPassword, setShowPassword] = useState<boolean>(false);
 
@@ -44,11 +43,13 @@ export const LoginFormModal = ({ show, onClose }: LoginModalProps) => {
 
         try {
             debugger
-            const res = await userService.login(phone, password);
+            const res = await userService.login(email, password);
             const apiData = res.data as LoginResponse; // Ép kiểu để TS hiểu
             console.log(apiData)
             if (apiData.code === 200 && apiData.data) {
                 localStorage.setItem("accessToken", apiData.data.access_token);
+                localStorage.setItem("refreshToken", apiData.data.refresh_token);
+
                 localStorage.setItem("user", JSON.stringify(apiData.data.user_infor));
 
                 // 2. Chuyển trang (window.location hợp lệ hoàn toàn trong TS)
@@ -66,7 +67,7 @@ export const LoginFormModal = ({ show, onClose }: LoginModalProps) => {
 
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        setPhone(value);
+        setEmail(value);
     };
 
     if (!show) return null;
@@ -118,8 +119,8 @@ export const LoginFormModal = ({ show, onClose }: LoginModalProps) => {
                                                 type="text"
                                                 className="form-control border-start-0 ps-0 shadow-none"
                                                 placeholder="Nhập số điện thoại"
-                                                value={phone}
-                                                onChange={(e) => setPhone(e.target.value)}
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
                                             />
                                         </div>
                                     </div>

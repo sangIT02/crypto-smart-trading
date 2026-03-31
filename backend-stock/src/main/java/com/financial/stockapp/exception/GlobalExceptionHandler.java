@@ -77,4 +77,18 @@ public class GlobalExceptionHandler {
                 .build();
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @ExceptionHandler(UserAlreadyExist.class)
+    public ResponseEntity<ErrorResponse> handleUserAlreadyExist(Exception ex) {
+        // Log lỗi ra console để dev fix
+        ex.printStackTrace();
+
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .error("Internal Server Error")
+                .message("Người dùng đã tồn tại.") // Không trả message lỗi thật của Java cho user
+                .timestamp(LocalDateTime.now())
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 }

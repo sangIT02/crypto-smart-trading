@@ -34,7 +34,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 1. Lấy token từ header Authorization
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
-        final String phoneNumber;
+        final String email;
 
         // Nếu không có header hoặc không bắt đầu bằng "Bearer " -> Cho qua (để các filter sau xử lý hoặc chặn)
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -46,13 +46,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         jwt = authHeader.substring(7);
 
         // 3. Trích xuất email từ token (cần viết hàm extractUsername trong JwtService)
-        phoneNumber = jwtUtils.extractPhoneNumber(jwt);
+        email = jwtUtils.extractEmail(jwt);
 
         // 4. Nếu có email và chưa được xác thực trong Context hiện tại
-        if (phoneNumber != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            // Lấy thông tin user từ DB
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(phoneNumber);
+            UserDetails userDetails = this.userDetailsService.loadUserByUsername(email);
 
             // 5. Kiểm tra token có hợp lệ không (hạn dùng, đúng user...)
             if (jwtUtils.isTokenValid(jwt, userDetails)) {

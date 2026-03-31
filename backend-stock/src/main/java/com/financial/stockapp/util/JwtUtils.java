@@ -22,18 +22,59 @@ public class JwtUtils {
     @Value("${jwt.secret-key}")
     private String SIGNER_KEY;
 
-    @Value("${jwt.expiration}")
-    private long VALID_DURATION;
+    @Value("${jwt.access-token-expiration}")
+    private long accessTokenExpiration; // vd: 3600000 (1 giờ, tính bằng ms)
 
+
+    @Value("${jwt.refresh-token-expiration}")
+    private long refreshTokenExpiration; // vd: 2592000000 (30 ngày, tính bằng ms)
 
     public String generateToken(CustomUserDetails userDetails){
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS256);
         // 2. Tạo Payload (Claims)
         JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
-                .subject(userDetails.getUser().getPhone())
+                .subject(userDetails.getUser().getEmail())
+                .claim("role", userDetails.getUser().getRole().getName())
+                .claim("type", "ACCESS")
                 .issuer("http://financial-app.com") // Ai phát hành (Optional)
                 .issueTime(new Date()) // Thời gian phát hành
-                .expirationTime(new Date(System.currentTimeMillis() + VALID_DURATION))
+                .expirationTime(new Date(System.currentTimeMillis() + accessTokenExpiration))
+                .jwtID(java.util.UUID.randomUUID().toString())
+                .claim("userId", userDetails.getUser().getId());
+
+        if (userDetails.getAuthorities() != null) {
+            claimsBuilder.claim("scope", userDetails.getAuthorities().stream()
+                    .map(auth -> auth.getAuthority())
+                    .collect(Collectors.toList()));
+        }
+
+        JWTClaimsSet claimsSet = claimsBuilder.build();
+
+        // 3. Tạo đối tượng SignedJWT (Kết hợp Header + Payload)
+        SignedJWT signedJWT = new SignedJWT(header, claimsSet);
+
+        // 4. Ký Token (Sign)
+        try {
+            JWSSigner signer = new MACSigner(SIGNER_KEY.getBytes());
+            signedJWT.sign(signer);
+        } catch (JOSEException e) {
+            throw new RuntimeException("Lỗi khi ký Token: " + e.getMessage());
+        }
+
+        // 5. Serialize ra chuỗi String
+        return signedJWT.serialize();
+    }
+
+
+    public String generateRefreshToken(CustomUserDetails userDetails) {
+        JWSHeader header = new JWSHeader(JWSAlgorithm.HS256);
+        // 2. Tạo Payload (Claims)
+        JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
+                .subject(userDetails.getUser().getEmail())
+                .claim("type", "REFRESH")   // phân biệt với access token
+                .issuer("http://financial-app.com") // Ai phát hành (Optional)
+                .issueTime(new Date()) // Thời gian phát hành
+                .expirationTime(new Date(System.currentTimeMillis() + refreshTokenExpiration))
                 .jwtID(java.util.UUID.randomUUID().toString())
                 .claim("userId", userDetails.getUser().getId());
 
@@ -66,20 +107,21 @@ public class JwtUtils {
     // -------------------------------------------------------------
     private JWTClaimsSet getClaimsFromToken(String token) {
         try {
-            // Parse chuỗi string thành object SignedJWT
             SignedJWT signedJWT = SignedJWT.parse(token);
-
-            // Lấy bộ Claims ra
+            JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
+            if (!signedJWT.verify(verifier)) {
+                throw new RuntimeException("Chữ ký token không hợp lệ");
+            }
             return signedJWT.getJWTClaimsSet();
-        } catch (ParseException e) {
-            // Token sai định dạng
-            System.err.println("Lỗi parse token: " + e.getMessage());
+        } catch (Exception e) {
             return null;
         }
     }
+    public long getExpirationTime() {
+        return accessTokenExpiration / 1000; // đổi ms → giây
+    }
 
-
-    public String extractPhoneNumber(String token) {
+    public String extractEmail(String token) {
         JWTClaimsSet claims = getClaimsFromToken(token);
         return claims != null ? claims.getSubject() : null;
     }

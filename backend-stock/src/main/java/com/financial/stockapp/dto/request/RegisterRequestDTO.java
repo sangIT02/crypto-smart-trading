@@ -10,7 +10,6 @@ import lombok.*;
 @Builder
 public class RegisterRequestDTO {
     @JsonProperty("phone_number")
-    private String phone;
     private String email;
     private String password;
 }

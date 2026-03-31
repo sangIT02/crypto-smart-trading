@@ -9,5 +9,6 @@ import lombok.*;
 @NoArgsConstructor
 public class VerifyOtpDto {
     private String email;
+    private String password;
     private String otp;
 }

@@ -1,65 +1,69 @@
 package com.financial.stockapp.entity;
-
-import com.financial.stockapp.entity.enums.Enum;
 import jakarta.persistence.*;
 import lombok.*;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 @Entity
-@Table(name = "trd_orders", indexes = {
-        @Index(name = "idx_user_orders", columnList = "user_id, created_at")
-})
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-@EqualsAndHashCode(callSuper = true)
-public class Order extends BaseEntity {
+@Table(name = "orders")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Order {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "stock_id", nullable = false)
-    private Stock stock;
+    @JoinColumn(name = "coin_id", nullable = false)
+    private Coin coin;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Enum.OrderSide side;
+    @Column(name = "binance_order_id", length = 100)
+    private String binanceOrderId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Enum.OrderType type;
+    @Column(nullable = false, length = 10)
+    private String side; // 'BUY', 'SELL'
 
-    @Column(name = "request_price", precision = 19, scale = 4)
-    private BigDecimal requestPrice;
+    @Column(nullable = false, length = 20)
+    private String type; // 'MARKET', 'LIMIT'
 
-    @Column(nullable = false)
-    private Integer quantity;
+    @Column(nullable = false, precision = 20, scale = 8)
+    private BigDecimal quantity;
 
-    @Column(name = "filled_quantity")
-    @Builder.Default
-    private Integer filledQuantity = 0;
+    @Column(precision = 20, scale = 8)
+    private BigDecimal price; // NULL nếu Market order
 
-    @Column(name = "avg_filled_price", precision = 19, scale = 4)
-    private BigDecimal avgFilledPrice;
+    @Column(name = "executed_price", precision = 20, scale = 8)
+    private BigDecimal executedPrice;
 
-    @Enumerated(EnumType.STRING)
-    @Builder.Default
-    private Enum.OrderStatus status = Enum.OrderStatus.PENDING;
+    @Column(name = "stop_loss", precision = 20, scale = 8)
+    private BigDecimal stopLoss;
 
-    @Column(name = "cancellation_reason")
-    private String cancellationReason;
+    @Column(name = "take_profit", precision = 20, scale = 8)
+    private BigDecimal takeProfit;
 
-    // Quan hệ 1-N với Executions
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<Execution> executions = new ArrayList<>();
+    @Column(precision = 20, scale = 8)
+    private BigDecimal pnl;
+
+    @Column(nullable = false, length = 20)
+    private String status; // 'PENDING', 'FILLED', 'CANCELLED'
+
+    @Column(length = 20)
+    private String source = "MANUAL"; // 'MANUAL', 'BOT', 'GRID', 'AI_SUGGEST'
+
+    @Column(columnDefinition = "TEXT")
+    private String note;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

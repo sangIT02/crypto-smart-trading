@@ -4,7 +4,7 @@ spring:
   datasource:
     username: root
     password: ${DB_PASSWORD}
-    url: jdbc:mysql://localhost:3306/stock_trading_db?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/cryptomind?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -50,6 +50,16 @@ spring:
           connectiontimeout: 5000
           timeout: 3000
           writetimeout: 5000
+  ai:
+    openai:
+      api-key: ${GEMINI_KEY}
+      chat:
+        base-url: https://generativelanguage.googleapis.com
+        completions-path: /v1beta/openai/chat/completions
+        options:
+          model: gemini-3-flash-preview
+
+
 server:
   port: 8080
 
@@ -58,5 +68,12 @@ api:
 
 jwt:
   secret-key: ${JWT_SECRET}
-  expiration: ${JWT_EXPIRED}
+  access-token-expiration: ${JWT_EXPIRED_ACCESS}
+  refresh-token-expiration: ${JWT_EXPIRED_REFRESH}
+sepay:
+  api-key: api11012004
 
+
+ai:
+  service:
+    url: http://127.0.0.1:8000

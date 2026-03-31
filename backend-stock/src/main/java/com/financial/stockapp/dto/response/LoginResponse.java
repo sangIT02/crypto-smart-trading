@@ -1,7 +1,6 @@
 package com.financial.stockapp.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.financial.stockapp.entity.User;
 import lombok.*;
 
 @Builder
@@ -13,6 +12,9 @@ public class LoginResponse {
 
     @JsonProperty("access_token")
     private String accessToken;
+
+    @JsonProperty("refresh_token")
+    private String refreshToken;
 
     @JsonProperty("token_type")
     private String tokenType;

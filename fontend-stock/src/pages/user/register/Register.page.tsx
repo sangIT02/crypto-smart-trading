@@ -11,12 +11,7 @@ const phoneRegex = /^(0|\+84)[0-9]{9}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_REGEX =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S{8,}$/;
-/* ================= VALIDATE FUNCTIONS ================= */
-const validatePhone = (value: string) => {
-    if (!value) return "Vui lòng nhập số điện thoại";
-    if (!phoneRegex.test(value)) return "Số điện thoại không hợp lệ";
-    return "";
-};
+
 
 const validateEmail = (value: string) => {
     if (!value) return "Vui lòng nhập email";
@@ -36,7 +31,6 @@ const validatePassword = (value: string): string => {
 
 export const RegisterPage = () => {
     /* ================= STATE ================= */
-    const [phone, setPhone] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState<string>("");
     const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -71,12 +65,6 @@ export const RegisterPage = () => {
         setShowLoginModal(true);
     }
 
-    /* ================= HANDLERS ================= */
-    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setPhone(value);
-        setPhoneError(validatePhone(value));
-    };
 
     const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -111,13 +99,10 @@ export const RegisterPage = () => {
     };
 
     const isFormValid =
-        phone &&
         email &&
-        !phoneError &&
         !emailError &&
         !passwordError &&
         !confirmPasswordError &&
-        phoneRegex.test(phone) &&
         emailRegex.test(email) &&
         PASSWORD_REGEX.test(password) &&
         password === confirmPassword;
@@ -141,19 +126,6 @@ export const RegisterPage = () => {
                         <h2 className="text-center mb-4">Thông tin đăng ký</h2>
 
                         <form>
-                            {/* PHONE */}
-                            <div className="mb-3">
-                                <label className="form-label">Số điện thoại</label>
-                                <input
-                                    type="text"
-                                    className={`form-control ${phoneError ? "is-invalid" : ""}`}
-                                    value={phone}
-                                    onChange={handlePhoneChange}
-                                />
-                                {phoneError && (
-                                    <div className="invalid-feedback">{phoneError}</div>
-                                )}
-                            </div>
 
                             {/* EMAIL */}
                             <div className="mb-3">
@@ -259,6 +231,7 @@ export const RegisterPage = () => {
                             <OtpModal
                                 show={showOtpModal}
                                 email={email}
+                                pass={password}
                                 onClose={() => setShowOtpModal(false)} // Tắt khi bấm X
 
                             />

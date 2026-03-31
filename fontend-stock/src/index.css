@@ -20,7 +20,28 @@
 .hover-bg-gray:hover i {
   color: white !important; /* Sáng chữ lên khi hover */
 }
+.ant-tabs {
+  color: #aaa;
+}
 
+.ant-tabs-tab {
+  color: #888 !important;
+  font-weight: 500;
+  font-size: 16px !important;   /* tăng size chung */
+
+
+}
+
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #fff !important;
+}
+
+.ant-tabs-ink-bar {
+  background: #f0b90b !important; /* vàng giống Binance */
+}
+input:focus {
+  outline: none;
+}
 /* Hiệu ứng xoay mũi tên */
 .transition-icon {
   transition: transform 0.3s ease;
@@ -41,4 +62,15 @@ body {
 /* Ẩn nút tăng giảm trên Firefox */
 .no-spinner {
   -moz-appearance: textfield;
+}
+
+.order-box:hover{
+  border-color: #F0B90B;
+  box-shadow: 0 0 0 1px #F0B90B;
+  cursor: pointer;
+
+}
+.order-box:focus-within {
+  border-color: #F0B90B;
+  box-shadow: 0 0 0 1px #F0B90B;
 }

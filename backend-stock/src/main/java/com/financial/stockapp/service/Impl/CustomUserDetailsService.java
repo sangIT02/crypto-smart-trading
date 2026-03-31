@@ -14,9 +14,11 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Autowired
     private IUserRepository userRepository;
 
-    public UserDetails loadUserByUsername(String phone) throws UsernameNotFoundException {
-        User user = userRepository.findByPhone(phone)
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy user với email: " + phone));
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        User user = userRepository.findUserByEmail(email);
+        if(user == null){
+            throw new UsernameNotFoundException("Không tìm thấy người dùng");
+        }
 
         return new CustomUserDetails(user);
     }

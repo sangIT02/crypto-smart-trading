@@ -1,5 +1,13 @@
+import { AppLayout } from "../layout/MainLayout";
+
 function ProfilePage() {
-  return <h2>Thông tin hồ sơ</h2>;
+  return <>
+    <AppLayout>
+      <div>
+          Alert
+      </div>
+    </AppLayout>
+  </>;
 }
 
 export default ProfilePage;

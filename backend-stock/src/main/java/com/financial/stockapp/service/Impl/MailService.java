@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 public class MailService implements IMailService {
     private final JavaMailSender javaMailSender;
 
-    @Async
     public void sentOPTMail(String toMail, String otpCode) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
