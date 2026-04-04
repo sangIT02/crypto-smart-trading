@@ -5,10 +5,8 @@ import { MOCK_COINS } from '../components/TabBtn';
 
 export const Trading = () => {
     return (
-        <AppLayout>
             <div>
                 <TradingChart/>
             </div>
-        </AppLayout>
     );
 }

@@ -30,8 +30,8 @@ const userService = {
     },
 
     // Bạn có thể viết thêm các hàm khác ở đây
-    login: (phone_number: string, password: string) => {
-        return axios.post(`${API_URL}/login`, { phone_number, password });
+    login: (email: string, password: string) => {
+        return axios.post(`${API_URL}/login`, { email, password });
     },
     
     verifyOtp: (email: string,password:string, otp: string) => {

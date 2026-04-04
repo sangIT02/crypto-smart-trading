@@ -77,3 +77,7 @@ sepay:
 ai:
   service:
     url: http://127.0.0.1:8000
+
+app:
+  crypto:
+    aes-key: NJxOEWPWlsYbXsDuFfxtCSwzKZkjGL1G

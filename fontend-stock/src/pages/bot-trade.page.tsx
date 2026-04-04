@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from "react";
-import { AppLayout } from "../layout/MainLayout";
 
 type BotMode = "ai" | "manual" | "signal";
 type BotStatus = "running" | "paused" | "stopped";
@@ -499,7 +498,6 @@ export const BotTrade = () => {
     }
 
     return (
-        <AppLayout>
             <div
                 style={{
                     fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
@@ -594,7 +592,6 @@ export const BotTrade = () => {
 
                 {showForm && <AddBotForm onAdd={handleAdd} onCancel={() => setShowForm(false)} />}
             </div>
-        </AppLayout>
     );
 };
 

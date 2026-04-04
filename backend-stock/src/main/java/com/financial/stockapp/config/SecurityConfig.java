@@ -35,15 +35,15 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 // 3. Phân quyền (Authorize)
                 .authorizeHttpRequests(auth -> auth
-                        // Cho phép các API này truy cập thoải mái (Login, Register, OAuth2)
-
-                        // Các API còn lại BẮT BUỘC phải có Token
-                        .anyRequest().permitAll()
+                        .requestMatchers("/api/users/login", "/api/users/register").permitAll() // public
+                        .anyRequest().authenticated() // ✅ còn lại phải có token
                 )
 
                 // 4. Quản lý Session (Quan trọng: Stateless)
                 // Vì dùng JWT nên server không cần lưu Session -> Tiết kiệm RAM
-
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
 
                 // 6. CHÈN FILTER CỦA MÌNH VÀO TRƯỚC FILTER MẶC ĐỊNH
                 // Ý nghĩa: "Kiểm tra Token trước khi làm bất cứ việc gì khác"

@@ -1,16 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { OrderType } from './OrderType';
 import { Slider } from 'antd';
+import { OrderType } from './OrderType';
 import { TPSL } from './TPSL';
 
-export const LimitOrder = ({ symbol }: { symbol: string }) => {
-    const balance = 10000000000;
-    const bestBidOfferPrice = 66000;
+export const MarketOrder = ({ symbol }: { symbol: string }) => {
+    const balance = 5000;
+    const markPrice = 66000; // giá market hiện tại, sau này thay bằng data từ BE / websocket
 
     const [showSltp, setShowSltp] = useState(false);
     const [leverage, setLeverage] = useState(10);
     const [percent, setPercent] = useState(0);
-    const [price, setPrice] = useState(bestBidOfferPrice);
 
     const MIN_LEV = 1;
     const MAX_LEV = 125;
@@ -21,14 +20,10 @@ export const LimitOrder = ({ symbol }: { symbol: string }) => {
         return (percent / 100) * balance;
     }, [percent, balance]);
 
-    const notional = useMemo(() => {
-        return totalUsdt * leverage;
-    }, [totalUsdt, leverage]);
-
     const quantity = useMemo(() => {
-        if (!price || price <= 0) return 0;
-        return notional / price;
-    }, [notional, price]);
+        if (!markPrice || markPrice <= 0) return 0;
+        return (totalUsdt * leverage) / markPrice;
+    }, [totalUsdt, leverage, markPrice]);
 
     const estimatedCost = useMemo(() => {
         return totalUsdt;
@@ -57,39 +52,11 @@ export const LimitOrder = ({ symbol }: { symbol: string }) => {
         setPercent((p) => clampPct(((totalUsdt + 1) / balance) * 100));
 
     const decreaseUsdt = () =>
-        setPercent((p) => clampPct((Math.max(totalUsdt - 1, 0) / balance) * 100));
+        setPercent((p) => clampPct(((Math.max(totalUsdt - 1, 0)) / balance) * 100));
 
     const handleUsdtInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         const v = Math.min(Math.max(Number(e.target.value) || 0, 0), balance);
         setPercent((v / balance) * 100);
-    };
-
-    const handlePriceInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const v = Number(e.target.value) || 0;
-        setPrice(v);
-    };
-
-    const handleSetBbo = () => {
-        setPrice(bestBidOfferPrice);
-    };
-
-    const buildOrderPayload = (side: 'BUY' | 'SELL') => {
-        return {
-            symbol,
-            side,
-            type: 'LIMIT',
-            timeInForce: 'GTC',
-            price: String(price),
-            quantity: String(quantity),
-        };
-    };
-
-    const handleSubmit = (side: 'BUY' | 'SELL') => {
-        const payload = buildOrderPayload(side);
-        console.log('LIMIT ORDER PAYLOAD:', payload);
-
-        // Gọi API ở đây
-        // orderService.createOrder(payload)
     };
 
     return (
@@ -160,6 +127,7 @@ export const LimitOrder = ({ symbol }: { symbol: string }) => {
                             <i className="bi bi-plus text-white fw-bold" />
                         </button>
                     </div>
+
                     <Slider
                         min={MIN_LEV}
                         max={MAX_LEV}
@@ -170,7 +138,7 @@ export const LimitOrder = ({ symbol }: { symbol: string }) => {
                     />
                 </div>
 
-                {/* Giá đặt */}
+                {/* Giá thị trường */}
                 <div>
                     <label
                         style={{
@@ -180,44 +148,22 @@ export const LimitOrder = ({ symbol }: { symbol: string }) => {
                             color: 'gray',
                         }}
                     >
-                        Giá đặt
+                        Giá thị trường
                     </label>
                     <div className="d-flex">
                         <div
                             className="rounded-2 d-flex justify-content-between order-box"
                             style={{
-                                width: '80%',
-                                padding: '8px',
+                                width: '100%',
+                                padding: '10px 12px',
                                 background: '#000',
                                 border: '2px solid #2E2E2E',
                             }}
                         >
-                            <input
-                                type="number"
-                                className="text-left fw-bold text-white no-spinner"
-                                style={{
-                                    backgroundColor: 'transparent',
-                                    border: 'none',
-                                    outline: 'none',
-                                    width: '100%',
-                                }}
-                                value={price || ''}
-                                onChange={handlePriceInput}
-                            />
-                            <span style={{ color: 'white' }}>USDT</span>
-                        </div>
-                        <div
-                            className="rounded-3 ms-3 fw-bold text-white text-center order-box"
-                            style={{
-                                width: '15%',
-                                backgroundColor: '#000',
-                                border: '2px solid #2E2E2E',
-                                alignContent: 'center',
-                                cursor: 'pointer',
-                            }}
-                            onClick={handleSetBbo}
-                        >
-                            BBO
+                            <span style={{ color: '#9ca3af' }}>Giá tốt nhất hiện tại</span>
+                            <span style={{ color: '#fff', fontWeight: 700 }}>
+                                {markPrice.toLocaleString()} USDT
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -234,7 +180,9 @@ export const LimitOrder = ({ symbol }: { symbol: string }) => {
                     >
                         Số lượng
                     </label>
+
                     <div className="d-flex">
+                        {/* USDT input */}
                         <div
                             className="rounded-2 d-flex justify-content-between order-box me-auto"
                             style={{
@@ -271,6 +219,7 @@ export const LimitOrder = ({ symbol }: { symbol: string }) => {
                             </button>
                         </div>
 
+                        {/* Percent input */}
                         <div
                             className="rounded-2 d-flex justify-content-between order-box"
                             style={{
@@ -335,13 +284,13 @@ export const LimitOrder = ({ symbol }: { symbol: string }) => {
                     <div className="d-flex justify-content-between mb-2">
                         <span style={{ color: '#5c6478', fontSize: '12px' }}>Giá trị vị thế</span>
                         <span style={{ color: '#e6eaf0', fontSize: '12px', fontWeight: 500 }}>
-                            {notional.toFixed(2)} USDT
+                            {(totalUsdt * leverage).toFixed(2)} USDT
                         </span>
                     </div>
                     <div className="d-flex justify-content-between mb-2">
                         <span style={{ color: '#5c6478', fontSize: '12px' }}>Khối lượng ước tính</span>
                         <span style={{ color: '#e6eaf0', fontSize: '12px', fontWeight: 500 }}>
-                            {quantity.toFixed(6)} {symbol}
+                            {quantity.toFixed(6)} BTC
                         </span>
                     </div>
                     <div className="d-flex justify-content-between">
@@ -356,7 +305,7 @@ export const LimitOrder = ({ symbol }: { symbol: string }) => {
                 <div className="d-flex align-items-center">
                     <input
                         type="checkbox"
-                        id="sltp-checkbox"
+                        id="sltp-checkbox-market"
                         checked={showSltp}
                         onChange={(e) => setShowSltp(e.target.checked)}
                     />
@@ -365,11 +314,18 @@ export const LimitOrder = ({ symbol }: { symbol: string }) => {
 
                 {showSltp && <TPSL />}
 
-                {/* Buttons */}
+                {/* Thông tin dưới nút */}
                 <div className="d-flex gap-2">
                     <div style={{ display: 'flex', width: '50%' }}>
-                        <div style={{ width: '50%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <span style={{ fontSize: '12px', color: '#5c6478' }}>Giá thanh lý</span>
+                        <div
+                            style={{
+                                width: '50%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '6px',
+                            }}
+                        >
+                            <span style={{ fontSize: '12px', color: '#5c6478' }}>Giá thị trường</span>
                             <span style={{ fontSize: '12px', color: '#5c6478' }}>Chi phí</span>
                         </div>
                         <div
@@ -382,7 +338,7 @@ export const LimitOrder = ({ symbol }: { symbol: string }) => {
                             }}
                         >
                             <span style={{ fontSize: '12px', color: '#e6eaf0', fontWeight: 500 }}>
-                                --
+                                {markPrice.toLocaleString()} USDT
                             </span>
                             <span style={{ fontSize: '12px', color: '#e6eaf0', fontWeight: 500 }}>
                                 {estimatedCost.toFixed(2)} USDT
@@ -391,7 +347,14 @@ export const LimitOrder = ({ symbol }: { symbol: string }) => {
                     </div>
 
                     <div style={{ display: 'flex', width: '50%' }}>
-                        <div style={{ width: '50%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div
+                            style={{
+                                width: '50%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '6px',
+                            }}
+                        >
                             <span style={{ fontSize: '12px', color: '#5c6478' }}>Đòn bẩy</span>
                             <span style={{ fontSize: '12px', color: '#5c6478' }}>Khối lượng</span>
                         </div>
@@ -408,13 +371,13 @@ export const LimitOrder = ({ symbol }: { symbol: string }) => {
                                 {leverage}x
                             </span>
                             <span style={{ fontSize: '12px', color: '#e6eaf0', fontWeight: 500 }}>
-                                {quantity.toFixed(6)} {symbol}
+                                {quantity.toFixed(6)} BTC
                             </span>
                         </div>
                     </div>
                 </div>
 
-                {/* Submit */}
+                {/* Buttons */}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                     <button
                         style={{
@@ -427,7 +390,6 @@ export const LimitOrder = ({ symbol }: { symbol: string }) => {
                             cursor: 'pointer',
                             fontWeight: 'bold',
                         }}
-                        onClick={() => handleSubmit('BUY')}
                     >
                         Mua/Long
                     </button>
@@ -442,7 +404,6 @@ export const LimitOrder = ({ symbol }: { symbol: string }) => {
                             cursor: 'pointer',
                             fontWeight: 'bold',
                         }}
-                        onClick={() => handleSubmit('SELL')}
                     >
                         Bán/Short
                     </button>

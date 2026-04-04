@@ -38,7 +38,7 @@ public class JwtUtils {
                 .claim("type", "ACCESS")
                 .issuer("http://financial-app.com") // Ai phát hành (Optional)
                 .issueTime(new Date()) // Thời gian phát hành
-                .expirationTime(new Date(System.currentTimeMillis() + accessTokenExpiration))
+                .expirationTime(new Date(System.currentTimeMillis() + accessTokenExpiration*3))
                 .jwtID(java.util.UUID.randomUUID().toString())
                 .claim("userId", userDetails.getUser().getId());
 
@@ -78,14 +78,6 @@ public class JwtUtils {
                 .jwtID(java.util.UUID.randomUUID().toString())
                 .claim("userId", userDetails.getUser().getId());
 
-        // Xử lý Roles: Convert từ GrantedAuthority sang List String
-        // Ví dụ: ["ROLE_USER", "ROLE_ADMIN"]
-        if (userDetails.getAuthorities() != null) {
-            claimsBuilder.claim("scope", userDetails.getAuthorities().stream()
-                    .map(auth -> auth.getAuthority())
-                    .collect(Collectors.toList()));
-        }
-
         JWTClaimsSet claimsSet = claimsBuilder.build();
 
         // 3. Tạo đối tượng SignedJWT (Kết hợp Header + Payload)
@@ -102,9 +94,6 @@ public class JwtUtils {
         // 5. Serialize ra chuỗi String
         return signedJWT.serialize();
     }
-
-    // 1. HÀM CORE: Trích xuất toàn bộ Claims từ Token
-    // -------------------------------------------------------------
     private JWTClaimsSet getClaimsFromToken(String token) {
         try {
             SignedJWT signedJWT = SignedJWT.parse(token);

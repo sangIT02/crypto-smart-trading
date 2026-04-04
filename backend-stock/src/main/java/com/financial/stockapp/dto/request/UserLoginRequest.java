@@ -10,9 +10,6 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserLoginRequest {
-
-    @JsonProperty("phone_number")
-    private String phone;
-
+    private String email;
     private String password;
 }

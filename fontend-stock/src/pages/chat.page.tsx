@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from "react";
-import { AppLayout } from "../layout/MainLayout";
 
 type MessageRole = "assistant" | "user";
 type AssistantStatus = "online" | "thinking" | "idle";
@@ -120,7 +119,6 @@ export const ChatBot = () => {
     }
 
     return (
-        <AppLayout>
             <div
                 style={{
                     fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
@@ -412,7 +410,6 @@ export const ChatBot = () => {
                     </div>
                 </div>
             </div>
-        </AppLayout>
     );
 };
 

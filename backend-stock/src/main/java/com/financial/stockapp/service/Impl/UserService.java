@@ -11,9 +11,11 @@ import com.financial.stockapp.repository.IUserRepository;
 import com.financial.stockapp.service.IUserService;
 import com.financial.stockapp.util.JwtUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService implements IUserService {
@@ -24,7 +26,7 @@ public class UserService implements IUserService {
 
     // đăng nhập
     public LoginResponse login(UserLoginRequest dto) {
-        User user = userRepository.findUserByPhone(dto.getPhone());
+        User user = userRepository.findUserByEmail(dto.getEmail());
         if(user == null){
             throw new UserNotFoundException("User chưa tồn tại");
         }
@@ -45,10 +47,12 @@ public class UserService implements IUserService {
 
         LoginResponse response = LoginResponse.builder()
                 .accessToken(token)
+                .refreshToken(refreshToken)
                 .expiresIn(86400)
                 .userInfoResponse(rs)
                 .tokenType("Bearer")
                 .build();
+        log.info(token +"refesh:"+refreshToken);
         return response;
     }
 

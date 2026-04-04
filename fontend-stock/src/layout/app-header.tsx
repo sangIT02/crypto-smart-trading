@@ -1,6 +1,28 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Badge } from "antd";
-import { Bell, Search, Moon, Sun, KeyRound, Sparkles, Activity } from "lucide-react";
+import { Bell, Search, Moon, Sun } from "lucide-react";
+
+type HeaderTickerItem = {
+    label: string;
+    value: string;
+    positive?: boolean;
+};
+
+const TICKER_ITEMS: HeaderTickerItem[] = [
+    { label: "BTC", value: "69,850  +2.14%", positive: true },
+    { label: "ETH", value: "3,515  -0.84%", positive: false },
+    { label: "OI", value: "+3.2%", positive: true },
+    { label: "Funding", value: "+0.0100%", positive: true },
+    { label: "F&G", value: "68" },
+    { label: "SOL", value: "3,515  -0.84%", positive: false },
+
+    { label: "DOGE", value: "3,515  -0.84%", positive: false },
+
+    { label: "LINK", value: "3,515  -0.84%", positive: false },
+
+    { label: "UNI", value: "3,515  -0.84%", positive: false },
+
+];
 
 export function AppHeader() {
     const [dark, setDark] = useState(true);
@@ -49,101 +71,9 @@ export function AppHeader() {
                     alignItems: "center",
                     gap: 16,
                     minHeight: 56,
+                    justifyContent: 'space-between'
                 }}
             >
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        flexShrink: 0,
-                        padding: "8px 12px",
-                        borderRadius: 14,
-                        border: "1px solid #1f1f1f",
-                        background: "linear-gradient(180deg, #0b0b0b 0%, #050505 100%)",
-                        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
-                    }}
-                >
-                    <div
-                        style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 10,
-                            background: "linear-gradient(180deg, rgba(240,185,11,0.16) 0%, rgba(240,185,11,0.05) 100%)",
-                            border: "1px solid rgba(240,185,11,0.28)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#f0b90b",
-                            flexShrink: 0,
-                        }}
-                    >
-                        <KeyRound size={16} />
-                    </div>
-
-                    <div>
-                        <div
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                marginBottom: 2,
-                            }}
-                        >
-                            <span
-                                style={{
-                                    color: "#fafafa",
-                                    fontSize: 14,
-                                    fontWeight: 700,
-                                    letterSpacing: 0.4,
-                                }}
-                            >
-                                CRYPTOMIND
-                            </span>
-
-                            <span
-                                style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 5,
-                                    padding: "2px 8px",
-                                    borderRadius: 999,
-                                    background: "#171107",
-                                    border: "1px solid #4a380e",
-                                    color: "#f0b90b",
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    letterSpacing: 0.6,
-                                }}
-                            >
-                                <Sparkles size={10} />
-                                PRO
-                            </span>
-                        </div>
-
-                        <div
-                            style={{
-                                color: "#6b7280",
-                                fontSize: 11,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 6,
-                            }}
-                        >
-                            <span
-                                style={{
-                                    width: 6,
-                                    height: 6,
-                                    borderRadius: "50%",
-                                    background: "#22c55e",
-                                    boxShadow: "0 0 10px rgba(34,197,94,0.7)",
-                                }}
-                            />
-                            Hệ thống đang hoạt động
-                        </div>
-                    </div>
-                </div>
-
                 <div style={{ flex: 1, maxWidth: 420 }}>
                     <div
                         style={{
@@ -172,7 +102,106 @@ export function AppHeader() {
                     </div>
                 </div>
 
-                <div style={{ flex: 1 }} />
+                <div
+                    style={{
+                        flex: 1,
+                        minWidth: 280,
+                        maxWidth: 700,
+                        overflow: "hidden",
+                    }}
+                >
+                    <style>{`
+        @keyframes ticker-scroll {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+    `}</style>
+
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            padding: "9px 12px",
+                            borderRadius: 12,
+                            background: "linear-gradient(180deg, #0b0b0b 0%, #050505 100%)",
+                            border: "1px solid #1a1a1a",
+                            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
+                            overflow: "hidden",
+                            whiteSpace: "nowrap",
+                        }}
+                    >
+                        <span
+                            style={{
+                                fontSize: 10,
+                                color: "#6b7280",
+                                textTransform: "uppercase",
+                                letterSpacing: 1.2,
+                                fontWeight: 700,
+                                flexShrink: 0,
+                            }}
+                        >
+                            Live Data
+                        </span>
+
+                        <div
+                            style={{
+                                overflow: "hidden",
+                                flex: 1,
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    width: "max-content",
+                                    gap: 14,
+                                    animation: "ticker-scroll 18s linear infinite",
+                                }}
+                            >
+                                {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, index) => (
+                                    <div
+                                        key={`${item.label}-${index}`}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 6,
+                                            flexShrink: 0,
+                                        }}
+                                    >
+                                        <span
+                                            style={{
+                                                color: "#fafafa",
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                            }}
+                                        >
+                                            {item.label}
+                                        </span>
+                                        <span
+                                            style={{
+                                                color:
+                                                    item.positive === undefined
+                                                        ? "#9ca3af"
+                                                        : item.positive
+                                                            ? "#0ECB81"
+                                                            : "#F6465D",
+                                                fontSize: 11,
+                                                fontWeight: 600,
+                                            }}
+                                        >
+                                            {item.value}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <div
                     style={{
@@ -182,41 +211,22 @@ export function AppHeader() {
                         flexShrink: 0,
                     }}
                 >
-                    <div
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            padding: "8px 12px",
-                            borderRadius: 12,
-                            background: "linear-gradient(180deg, #0b0b0b 0%, #050505 100%)",
-                            border: "1px solid #1a1a1a",
-                            color: "#e5e7eb",
-                            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
-                        }}
-                    >
-                        <Activity size={14} color="#f0b90b" />
-                        <div style={{ lineHeight: 1.1 }}>
-                            <div
-                                style={{
-                                    fontSize: 11,
-                                    color: "#fafafa",
-                                    fontWeight: 600,
-                                }}
-                            >
-                                Market 24/7
-                            </div>
-                            <div
-                                style={{
-                                    fontSize: 10,
-                                    color: "#6b7280",
-                                }}
-                            >
-                                Crypto never sleeps
-                            </div>
-                        </div>
-                    </div>
 
+
+                    <button type="button" onClick={() => setDark((prev) => !prev)} style={iconBtnStyle}>
+                        {dark ? <Moon size={16} color="#a1a1aa" /> : <Sun size={16} color="#f0b90b" />}
+                    </button>
+
+                    <button type="button" style={iconBtnStyle}>
+                        <Badge
+                            count={3}
+                            size="small"
+                            offset={[-2, 2]}
+                            styles={{ indicator: { backgroundColor: "#f0b90b", color: "#111" } }}
+                        >
+                            <Bell size={16} color="#c4c7ce" />
+                        </Badge>
+                    </button>
                     <div
                         style={{
                             padding: "8px 12px",
@@ -224,7 +234,7 @@ export function AppHeader() {
                             background: "linear-gradient(180deg, rgba(240,185,11,0.08) 0%, rgba(240,185,11,0.03) 100%)",
                             border: "1px solid rgba(240,185,11,0.18)",
                             minWidth: 132,
-                            textAlign: "right",
+                            textAlign: "center",
                         }}
                     >
                         <div
@@ -248,21 +258,6 @@ export function AppHeader() {
                             {dateText}
                         </div>
                     </div>
-
-                    <button type="button" onClick={() => setDark((prev) => !prev)} style={iconBtnStyle}>
-                        {dark ? <Moon size={16} color="#a1a1aa" /> : <Sun size={16} color="#f0b90b" />}
-                    </button>
-
-                    <button type="button" style={iconBtnStyle}>
-                        <Badge
-                            count={3}
-                            size="small"
-                            offset={[-2, 2]}
-                            styles={{ indicator: { backgroundColor: "#f0b90b", color: "#111" } }}
-                        >
-                            <Bell size={16} color="#c4c7ce" />
-                        </Badge>
-                    </button>
                 </div>
             </div>
         </header>

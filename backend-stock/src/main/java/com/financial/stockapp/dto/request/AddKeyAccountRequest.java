@@ -1,9 +1,8 @@
 package com.financial.stockapp.dto.request;
 
 public record AddKeyAccountRequest(
-        int UserID,
+        String nameAccount,
         String apiKey,
-        String secretKey,
-        String nameAccount
+        String secretKey
 ) {
 }

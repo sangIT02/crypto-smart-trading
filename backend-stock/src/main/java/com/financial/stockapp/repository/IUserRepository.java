@@ -4,8 +4,7 @@ import com.financial.stockapp.entity.User;
 import com.financial.stockapp.repository.custom.CustomUserRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface IUserRepository extends JpaRepository<User, Long>, CustomUserRepository {
-    User findUserByPhone(String phone);
+public interface IUserRepository extends JpaRepository<User, Integer>, CustomUserRepository {
     User findUserByEmail(String email);
 
 }

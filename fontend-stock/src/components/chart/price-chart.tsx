@@ -13,65 +13,123 @@ import {
 // CONFIG
 // ================================================================
 const BINANCE_REST = 'https://api.binance.com/api/v3/klines';
-const BINANCE_WS   = 'wss://stream.binance.com:9443/ws';
-const BATCH_SIZE   = 500; // Số nến mỗi lần load
+const BINANCE_WS = 'wss://stream.binance.com:9443/ws';
+const BATCH_SIZE = 500;
 
 // ================================================================
-// HELPER
+// TYPES
 // ================================================================
-// Tính precision từ giá thực tế — không cần hardcode từng coin
+type BinanceKline = [
+    number,  // open time
+    string,  // open
+    string,  // high
+    string,  // low
+    string,  // close
+    string,  // volume
+    number,  // close time
+    string,  // quote asset volume
+    number,  // number of trades
+    string,  // taker buy base asset volume
+    string,  // taker buy quote asset volume
+    string   // ignore
+];
+
+type Props = {
+    symbol: string;
+};
+
+// ================================================================
+// HELPERS
+// ================================================================
 function calcPrecision(price: number): { precision: number; minMove: number } {
-    if (price >= 1000)  return { precision: 2,  minMove: 0.01     };
-    if (price >= 100)   return { precision: 2,  minMove: 0.01     };
-    if (price >= 1)     return { precision: 4,  minMove: 0.0001   };
-    if (price >= 0.01)  return { precision: 5,  minMove: 0.00001  };
-    if (price >= 0.001) return { precision: 6,  minMove: 0.000001 };
-    return              { precision: 8,  minMove: 0.00000001 };
+    if (price >= 1000) return { precision: 2, minMove: 0.01 };
+    if (price >= 100) return { precision: 2, minMove: 0.01 };
+    if (price >= 1) return { precision: 4, minMove: 0.0001 };
+    if (price >= 0.01) return { precision: 5, minMove: 0.00001 };
+    if (price >= 0.001) return { precision: 6, minMove: 0.000001 };
+    return { precision: 8, minMove: 0.00000001 };
 }
-const parseCandles = (raw: any[][]): CandlestickData[] =>
-    raw.map(k => ({
-        time:  Math.floor(Number(k[0]) / 1000) as UTCTimestamp,
-        open:  parseFloat(k[1]),
-        high:  parseFloat(k[2]),
-        low:   parseFloat(k[3]),
+
+function parseCandles(raw: BinanceKline[]): CandlestickData[] {
+    return raw.map((k) => ({
+        time: Math.floor(Number(k[0]) / 1000) as UTCTimestamp,
+        open: parseFloat(k[1]),
+        high: parseFloat(k[2]),
+        low: parseFloat(k[3]),
         close: parseFloat(k[4]),
     }));
+}
 
-const fetchKlines = async (
-    symbol:    string, // ← thêm vào
+async function fetchKlines(
+    symbol: string,
     interval: string,
     endTime?: number,
     startTime?: number
-): Promise<CandlestickData[]> => {
+): Promise<CandlestickData[]> {
     let url = `${BINANCE_REST}?symbol=${symbol}&interval=${interval}&limit=${BATCH_SIZE}`;
-    if (endTime)   url += `&endTime=${endTime}`;
+    if (endTime) url += `&endTime=${endTime}`;
     if (startTime) url += `&startTime=${startTime}`;
 
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Binance API error: ${res.status}`);
-    const json = await res.json();
+
+    const json: BinanceKline[] = await res.json();
     return parseCandles(json);
-};
+}
 
-type Props = {
-    symbol: string; // "BTCUSDT", "ETHUSDT"...
-};
+function getIntervalSeconds(tf: string): number {
+    const map: Record<string, number> = {
+        '1m': 60,
+        '3m': 180,
+        '5m': 300,
+        '15m': 900,
+        '30m': 1800,
+        '1h': 3600,
+        '2h': 7200,
+        '4h': 14400,
+        '6h': 21600,
+        '12h': 43200,
+        '1d': 86400,
+        '1w': 604800,
+        '1M': 2592000,
+    };
+    return map[tf] ?? 3600;
+}
 
+function formatNumber(value: number | null, digits = 2) {
+    if (value === null || Number.isNaN(value)) return '--';
+    return value.toLocaleString('en-US', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+    });
+}
+
+// ================================================================
+// COMPONENT
+// ================================================================
 const DashboardChart: React.FC<Props> = ({ symbol }) => {
-    const [status,    setStatus]    = useState('Đang khởi động...');
+    const [status, setStatus] = useState('Đang khởi động...');
     const [lastPrice, setLastPrice] = useState<number | null>(null);
     const [timeframe, setTimeframe] = useState('1h');
     const [isLoading, setIsLoading] = useState(false);
 
-    const timeframes = ['1m','3m','5m','15m','30m','1h','2h','4h','6h','12h','1d','1w','1M'];
+    const timeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '12h', '1d', '1w', '1M'];
 
     const chartContainerRef = useRef<HTMLDivElement>(null);
-    const chartRef          = useRef<IChartApi | null>(null);
-    const seriesRef         = useRef<ISeriesApi<'Candlestick'> | null>(null);
-    const candlesRef        = useRef<CandlestickData[]>([]);   // Cache toàn bộ nến
-    const wsRef             = useRef<WebSocket | null>(null);
-    const isLoadingRef      = useRef(false);                   // Tránh load 2 lần cùng lúc
-    const currentTfRef      = useRef(timeframe);               // Ref để dùng trong closure
+    const chartRef = useRef<IChartApi | null>(null);
+    const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
+    const candlesRef = useRef<CandlestickData[]>([]);
+    const wsRef = useRef<WebSocket | null>(null);
+    const isLoadingRef = useRef(false);
+    const currentTfRef = useRef(timeframe);
+    const requestIdRef = useRef(0);
+
+    const closeSocket = useCallback(() => {
+        if (wsRef.current) {
+            wsRef.current.close();
+            wsRef.current = null;
+        }
+    }, []);
 
     // ================================
     // 1. TẠO CHART
@@ -82,7 +140,7 @@ const DashboardChart: React.FC<Props> = ({ symbol }) => {
         const chart = createChart(chartContainerRef.current, {
             layout: {
                 background: { type: ColorType.Solid, color: '#000000' },
-                textColor:  '#B2B5BE',
+                textColor: '#B2B5BE',
             },
             width: chartContainerRef.current.clientWidth,
             height: chartContainerRef.current.clientHeight,
@@ -93,318 +151,308 @@ const DashboardChart: React.FC<Props> = ({ symbol }) => {
             crosshair: { mode: 1 },
             rightPriceScale: { borderColor: '#2a2e39' },
             timeScale: {
-                timeVisible:   true,
-                borderColor:   '#2a2e39',
-                rightOffset:   10,
-                barSpacing:    8,
+                timeVisible: true,
+                borderColor: '#2a2e39',
+                rightOffset: 10,
+                barSpacing: 8,
             },
         });
 
         const series = chart.addSeries(CandlestickSeries, {
-            upColor:      '#26a69a',
-            downColor:    '#ef5350',
+            upColor: '#26a69a',
+            downColor: '#ef5350',
             borderVisible: false,
-            wickUpColor:   '#26a69a',
+            wickUpColor: '#26a69a',
             wickDownColor: '#ef5350',
         });
 
-        chartRef.current  = chart;
+        chartRef.current = chart;
         seriesRef.current = series;
 
-        // Resize
-        const resizeObserver = new ResizeObserver(entries => {
-            if (!entries.length) return;
-            chart.applyOptions({ width: entries[0].contentRect.width });
-        });
-        resizeObserver.observe(chartContainerRef.current);
+        const handleResize = () => {
+            if (!chartContainerRef.current || !chartRef.current) return;
+            chartRef.current.applyOptions({
+                width: chartContainerRef.current.clientWidth,
+                height: chartContainerRef.current.clientHeight,
+            });
+        };
+
+        window.addEventListener('resize', handleResize);
 
         return () => {
-            resizeObserver.disconnect();
+            window.removeEventListener('resize', handleResize);
+            closeSocket();
             chart.remove();
+            chartRef.current = null;
+            seriesRef.current = null;
         };
-    }, []);
+    }, [closeSocket]);
 
     // ================================
-    // 2. LOAD LỊCH SỬ BAN ĐẦU
+    // 2. LOAD DỮ LIỆU BAN ĐẦU
     // ================================
     const loadInitialData = useCallback(async (tf: string) => {
         if (!seriesRef.current) return;
 
-        setStatus('Đang tải...');
+        const requestId = ++requestIdRef.current;
         setIsLoading(true);
-        candlesRef.current = [];
+        setStatus(`Đang tải dữ liệu ${symbol} - ${tf}...`);
 
         try {
-            const candles = await fetchKlines(symbol, tf); // ← thêm symbol
-            if (!candles.length) { setStatus('Không có dữ liệu'); return; }
+            closeSocket();
 
-            candlesRef.current = candles;
-            seriesRef.current.setData(candles);
-            const lastPrice = candles[candles.length - 1].close;
-            const { precision, minMove } = calcPrecision(lastPrice);
-            seriesRef.current.applyOptions({
-                priceFormat: { type: 'price', precision, minMove }
-            });
-            setLastPrice(candles[candles.length - 1].close);
-            chartRef.current?.timeScale().fitContent();
-            setStatus(`✅ ${candles.length} nến`);
-        } catch (err) {
-            console.error(err);
-            setStatus('❌ Lỗi tải dữ liệu');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [symbol]);
+            const candles = await fetchKlines(symbol, tf);
 
-    // ================================
-    // 3. LOAD THÊM NẾN CŨ (kéo trái)
-    // ================================
-    const loadMoreHistory = useCallback(async () => {
-        if (isLoadingRef.current) return;           // Đang load rồi → bỏ qua
-        if (!candlesRef.current.length) return;
-        if (!seriesRef.current) return;
-
-        isLoadingRef.current = true;
-        setStatus('Đang tải thêm nến cũ...');
-
-        try {
-            // endTime = openTime của nến cũ nhất hiện tại - 1ms
-            const oldestTime = Number(candlesRef.current[0].time) * 1000;
-            const endTime    = oldestTime - 1;
-
-            const older = await fetchKlines(symbol,currentTfRef.current, endTime);
-            if (!older.length) {
-                setStatus('✅ Đã tải hết lịch sử');
+            if (requestId !== requestIdRef.current) return;
+            if (!candles.length) {
+                setStatus('Không có dữ liệu');
                 return;
             }
 
-            // Gộp nến cũ vào đầu
-            const merged = [...older, ...candlesRef.current];
+            candlesRef.current = candles;
+            seriesRef.current.setData(candles);
 
-            // Loại bỏ duplicate theo time
-            const seen = new Set<number>();
-            const unique = merged.filter(c => {
-                const t = Number(c.time);
-                if (seen.has(t)) return false;
-                seen.add(t);
-                return true;
+            const latest = candles[candles.length - 1];
+            setLastPrice(latest.close);
+
+            const { precision, minMove } = calcPrecision(latest.close);
+            seriesRef.current.applyOptions({
+                priceFormat: {
+                    type: 'price',
+                    precision,
+                    minMove,
+                },
             });
 
-            unique.sort((a, b) => Number(a.time) - Number(b.time));
-            candlesRef.current = unique;
-
-            seriesRef.current.setData(unique);
-            setStatus(`✅ ${unique.length} nến`);
+            chartRef.current?.timeScale().fitContent();
+            setStatus(`Đã tải ${candles.length} nến`);
         } catch (err) {
             console.error(err);
-            setStatus('❌ Lỗi tải thêm');
+            if (requestId === requestIdRef.current) {
+                setStatus('Lỗi tải dữ liệu');
+            }
+        } finally {
+            if (requestId === requestIdRef.current) {
+                setIsLoading(false);
+            }
+        }
+    }, [symbol, closeSocket]);
+
+    // ================================
+    // 3. LOAD THÊM KHI KÉO VỀ TRÁI
+    // ================================
+    const loadMoreHistory = useCallback(async () => {
+        if (!seriesRef.current || !candlesRef.current.length || isLoadingRef.current) return;
+
+        isLoadingRef.current = true;
+        setStatus('Đang tải thêm lịch sử...');
+
+        try {
+            const oldest = candlesRef.current[0];
+            const endTime = Number(oldest.time) * 1000 - 1;
+
+            const olderCandles = await fetchKlines(symbol, currentTfRef.current, endTime);
+
+            if (!olderCandles.length) {
+                setStatus('Không còn dữ liệu cũ hơn');
+                return;
+            }
+
+            const merged = [...olderCandles, ...candlesRef.current];
+            const uniqueMap = new Map<number, CandlestickData>();
+
+            merged.forEach((c) => {
+                uniqueMap.set(Number(c.time), c);
+            });
+
+            const uniqueSorted = Array.from(uniqueMap.values()).sort(
+                (a, b) => Number(a.time) - Number(b.time)
+            );
+
+            candlesRef.current = uniqueSorted;
+            seriesRef.current.setData(uniqueSorted);
+            setStatus(`Đã tải thêm ${olderCandles.length} nến`);
+        } catch (err) {
+            console.error(err);
+            setStatus('Lỗi tải lịch sử');
         } finally {
             isLoadingRef.current = false;
         }
     }, [symbol]);
 
     // ================================
-    // 4. ĐĂNG KÝ SỰ KIỆN KÉO TRÁI
+    // 4. BẮT SỰ KIỆN KÉO TRÁI
     // ================================
     useEffect(() => {
         if (!chartRef.current) return;
 
-        const handleVisibleRangeChange = () => {
-            if (!chartRef.current || !candlesRef.current.length) return;
+        const timeScale = chartRef.current.timeScale();
 
-            const range = chartRef.current.timeScale().getVisibleRange();
-            if (!range) return;
+        const handler = () => {
+            const range = timeScale.getVisibleLogicalRange();
+            if (!range || !candlesRef.current.length) return;
 
-            // Lấy thời gian nến cũ nhất đang có
             const oldestTime = Number(candlesRef.current[0].time);
-
-            // Nếu đang xem gần tới nến cũ nhất → load thêm
-            // (khi visible range từ nến đầu tiên còn < 50 nến)
             const threshold = oldestTime + 50 * getIntervalSeconds(currentTfRef.current);
+
             if (Number(range.from) < threshold) {
                 loadMoreHistory();
             }
         };
 
-        chartRef.current.timeScale().subscribeVisibleTimeRangeChange(handleVisibleRangeChange);
+        timeScale.subscribeVisibleLogicalRangeChange(handler);
 
         return () => {
-            chartRef.current?.timeScale().unsubscribeVisibleTimeRangeChange(handleVisibleRangeChange);
+            timeScale.unsubscribeVisibleLogicalRangeChange(handler);
         };
     }, [loadMoreHistory]);
 
     // ================================
-    // 5. WEBSOCKET — NẾN REALTIME
+    // 5. WEBSOCKET REALTIME
     // ================================
-    const connectWebSocket = useCallback((tf: string) => {
-        // Đóng kết nối cũ
-        if (wsRef.current) {
-            wsRef.current.close();
-            wsRef.current = null;
-        }
+    const connectWebSocket = useCallback(() => {
+        if (!seriesRef.current) return;
 
-        const stream = `${symbol.toLowerCase()}@kline_${tf}`;
-        const ws = new WebSocket(`${BINANCE_WS}/${stream}`);
+        closeSocket();
+
+        const streamName = `${symbol.toLowerCase()}@kline_${timeframe}`;
+        const ws = new WebSocket(`${BINANCE_WS}/${streamName}`);
+        wsRef.current = ws;
 
         ws.onopen = () => {
-            console.log(`✅ WebSocket connected: ${stream}`);
+            setStatus(`Realtime ${symbol} - ${timeframe}`);
         };
 
         ws.onmessage = (event) => {
-            const msg  = JSON.parse(event.data);
-            const k    = msg.k; // kline data
-            if (!k || !seriesRef.current) return;
+            try {
+                const message = JSON.parse(event.data);
+                const k = message.k;
 
-            const newCandle: CandlestickData = {
-                time:  Math.floor(k.t / 1000) as UTCTimestamp,
-                open:  parseFloat(k.o),
-                high:  parseFloat(k.h),
-                low:   parseFloat(k.l),
-                close: parseFloat(k.c),
-            };
+                if (!k) return;
 
-            // Update giá hiển thị
-            setLastPrice(parseFloat(k.c));
+                const candle: CandlestickData = {
+                    time: Math.floor(Number(k.t) / 1000) as UTCTimestamp,
+                    open: parseFloat(k.o),
+                    high: parseFloat(k.h),
+                    low: parseFloat(k.l),
+                    close: parseFloat(k.c),
+                };
 
-            // Cập nhật nến trên chart (update nến hiện tại hoặc thêm nến mới)
-            seriesRef.current.update(newCandle);
+                setLastPrice(candle.close);
 
-            // Nến đóng (k.x = true) → thêm vào cache
-            if (k.x) {
-                const last = candlesRef.current[candlesRef.current.length - 1];
-                if (!last || Number(last.time) !== Number(newCandle.time)) {
-                    candlesRef.current.push(newCandle);
+                const current = candlesRef.current;
+                if (!current.length) return;
+
+                const last = current[current.length - 1];
+
+                if (Number(last.time) === Number(candle.time)) {
+                    const updated = [...current];
+                    updated[updated.length - 1] = candle;
+                    candlesRef.current = updated;
+                } else if (Number(candle.time) > Number(last.time)) {
+                    candlesRef.current = [...current, candle];
                 }
+
+                seriesRef.current?.update(candle);
+            } catch (err) {
+                console.error('WebSocket parse error:', err);
             }
         };
 
         ws.onerror = (err) => {
             console.error('WebSocket error:', err);
+            setStatus('Lỗi kết nối realtime');
         };
 
         ws.onclose = () => {
-            console.log('WebSocket closed');
+            setStatus('Đã ngắt realtime');
         };
-
-        wsRef.current = ws;
-    }, [symbol]);
+    }, [symbol, timeframe, closeSocket]);
 
     // ================================
-    // 6. KHI ĐỔI TIMEFRAME
+    // 6. KHI ĐỔI SYMBOL / TIMEFRAME
     // ================================
     useEffect(() => {
         currentTfRef.current = timeframe;
-
-        candlesRef.current = [];
-        seriesRef.current?.setData([]);
-        setLastPrice(null);
-    
-        // Đóng socket cũ
-        if (wsRef.current) {
-            wsRef.current.close();
-            wsRef.current = null;
-        }
-    
-        // Load data mới + mở socket mới
         loadInitialData(timeframe);
-        connectWebSocket(timeframe);
+    }, [timeframe, symbol, loadInitialData]);
 
-        // Cleanup khi đổi timeframe hoặc unmount
+    useEffect(() => {
+        if (!candlesRef.current.length) return;
+        connectWebSocket();
+
         return () => {
-            if (wsRef.current) {
-                wsRef.current.close();
-                wsRef.current = null;
-            }
+            closeSocket();
         };
-    }, [timeframe, symbol]);
+    }, [connectWebSocket, closeSocket]);
 
-    // ================================
-    // UI
-    // ================================
+    const priceColor =
+        lastPrice === null
+            ? '#B2B5BE'
+            : candlesRef.current.length > 1 &&
+              lastPrice >= candlesRef.current[candlesRef.current.length - 1]?.open
+            ? '#26a69a'
+            : '#ef5350';
+
     return (
-        <div style={{
-            height: '60vh',
-            width: '100%',
-            backgroundColor: '#000',
-            color:           '#fff',
-            display:         'flex',
-            flexDirection:   'column',
-        }}>
-            <div style={{
+        <div
+            style={{
+                width: '100%',
+                background: '#000',
+                border: '1px solid #1a1d26',
+                borderRadius: 16,
+                padding: 16,
                 display: 'flex',
-                flex:    1,
-                width:   '130%',
-                padding: '10px',
-                gap:     '10px',
-            }}>
+                flexDirection: 'column',
+                gap: 14,
+            }}
+        >
+            <div
+                style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: 16,
+                    flexWrap: 'wrap',
+                }}
+            >
 
-                {/* CHART PANEL */}
-                <div style={{ flex: '0 0 75%', display: 'flex', flexDirection: 'column' }}>
-
-
-                    {/* TIMEFRAME BUTTONS */}
-                    <div style={{
-                        display:         'flex',
-                        gap:             '4px',
-                        backgroundColor: '#000',
-                        padding:         '6px',
-                        borderRadius:    '6px',
-                        flexWrap:        'wrap',
-                        border: "1px solid #2E2E2E",
-                        marginBottom: '5px'
-                    }}>
-                        {timeframes.map(tf => (
-                            <button
-                                key={tf}
-                                onClick={() => setTimeframe(tf)}
-                                style={{
-                                    background:   timeframe === tf ? '#2962ff' : 'transparent',
-                                    color:        timeframe === tf ? '#fff' : '#666',
-                                    border:       'none',
-                                    borderRadius: '4px',
-                                    padding:      '4px 10px',
-                                    cursor:       'pointer',
-                                    fontSize:     13,
-                                    fontWeight:   timeframe === tf ? 600 : 400,
-                                    transition:   'all 0.15s',
-                                }}
-                            >
-                                {tf}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* CHART */}
-                    <div
-                        ref={chartContainerRef}
-                        style={{
-                            flex:         1,
-                            width:        '100%',
-                            borderRadius: '6px',
-                            overflow:     'hidden',
-                            backgroundColor:"#000"
-                        }}
-                    />
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {timeframes.map((tf) => (
+                        <button
+                            key={tf}
+                            type="button"
+                            onClick={() => setTimeframe(tf)}
+                            style={{
+                                background: timeframe === tf ? '#171107' : '#070707',
+                                border: `1px solid ${timeframe === tf ? '#4a380e' : '#1a1d26'}`,
+                                color: timeframe === tf ? '#f0b90b' : '#B2B5BE',
+                                fontSize: 12,
+                                fontWeight: timeframe === tf ? 700 : 500,
+                                padding: '8px 12px',
+                                borderRadius: 10,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                            }}
+                        >
+                            {tf}
+                        </button>
+                    ))}
                 </div>
-
             </div>
+
+            <div
+                ref={chartContainerRef}
+                style={{
+                    width: '100%',
+                    height: 520,
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    background: '#000',
+                }}
+            />
         </div>
     );
 };
 
 export default DashboardChart;
-
-// ================================================================
-// HELPER — Tính số giây của mỗi interval (dùng để tính threshold)
-// ================================================================
-function getIntervalSeconds(interval: string): number {
-    const map: Record<string, number> = {
-        '1s':  1,        '1m':  60,       '3m':  180,
-        '5m':  300,      '15m': 900,      '30m': 1800,
-        '1h':  3600,     '2h':  7200,     '4h':  14400,
-        '6h':  21600,    '8h':  28800,    '12h': 43200,
-        '1d':  86400,    '3d':  259200,   '1w':  604800,
-        '1M':  2592000,
-    };
-    return map[interval] ?? 3600;
-}

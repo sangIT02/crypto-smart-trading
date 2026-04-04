@@ -1,20 +1,15 @@
-
 import { useEffect, useState } from 'react';
 import {
     TrendingUp, TrendingDown, Minus,
-    Brain, ShieldAlert, History,
-    BarChart2, ChevronDown, Zap
+    Brain, History,
+    BarChart2, ChevronDown
 } from 'lucide-react';
 import { useCoinStore } from '../store/coinStore';
-import { AppLayout } from '../layout/MainLayout';
 import { CoinSelector } from '../components/TabBtn';
 import { predictionService } from '../services/predictionService';
 import axios from 'axios';
 import RiskDrawer, { type DataAnalyze } from '../components/RiskDrawer';
 
-// ================================================================
-// TYPES
-// ================================================================
 export type Signal = 'LONG' | 'SHORT' | 'FLAT';
 
 export type PredictionData = {
@@ -26,24 +21,17 @@ export type PredictionData = {
     mae: string;
     mape: string;
 };
+
 type PriceCoin = {
-    symbol: string;   // Symbol
+    symbol: string;
     lastPrice: number,
-    priceChange: number;   // Price change
-    priceChangePercent: number;   // Price change percent
-    volume: number;   // Volume
+    priceChange: number;
+    priceChangePercent: number;
+    volume: number;
 };
-
-
-// ================================================================
-// MOCK DATA — thay bằng API thật
-// ================================================================
 
 const TIMEFRAMES = ['1h', '4h', '1d'];
 
-// ================================================================
-// HELPERS
-// ================================================================
 const fmt = (n?: number | null, d = 2) => {
     if (n === null || n === undefined || isNaN(n)) return '--';
 
@@ -62,34 +50,37 @@ const SIGNAL_CONFIG: Record<Signal, {
     FLAT: { color: '#ef9f27', bg: 'rgba(239,159,39,0.08)', border: 'rgba(239,159,39,0.3)', icon: <Minus size={14} />, label: 'FLAT' },
 };
 
-// ================================================================
-// SUB-COMPONENTS
-// ================================================================
 const StatCard: React.FC<{
     label: string; value: React.ReactNode;
     sub?: React.ReactNode; accent?: string;
 }> = ({ label, value, sub, accent }) => (
     <div style={{
-        flex: 1, background: '#0d0f14',
-        border: `1px solid ${accent ?? '#1a1d26'}`,
-        borderRadius: 10, padding: '14px 16px',
-        display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0,
+        flex: 1,
+        minWidth: 0,
+        background: 'linear-gradient(180deg, #0b0b0b 0%, #050505 100%)',
+        border: `1px solid ${accent ?? '#1a1a1a'}`,
+        borderRadius: 14,
+        padding: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6,
+        boxShadow: '0 0 0 1px rgba(255,255,255,0.015)',
     }}>
-        <span style={{ fontSize: 11, color: '#5c6478', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        <span style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 600 }}>
             {label}
         </span>
-        <div style={{ fontSize: 22, fontWeight: 700, color: '#e6eaf0', fontVariantNumeric: 'tabular-nums' }}>
+        <div style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.3px' }}>
             {value}
         </div>
-        {sub && <div style={{ fontSize: 12, marginTop: 2 }}>{sub}</div>}
+        {sub && <div style={{ fontSize: 12, marginTop: 2, color: '#8b8f97' }}>{sub}</div>}
     </div>
 );
 
 const Bar: React.FC<{ value: number; color: string }> = ({ value, color }) => (
-    <div style={{ background: '#1a1d26', borderRadius: 4, height: 4, width: '100%' }}>
+    <div style={{ background: '#171717', borderRadius: 999, height: 5, width: '100%' }}>
         <div style={{
             width: `${Math.min(value, 100)}%`, height: '100%',
-            background: color, borderRadius: 4, transition: 'width 0.5s ease',
+            background: color, borderRadius: 999, transition: 'width 0.5s ease',
         }} />
     </div>
 );
@@ -102,7 +93,7 @@ const SectionTitle: React.FC<{ icon: React.ReactNode; title: string; dot: string
         }}>
             {icon}
         </div>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#e6eaf0' }}>{title}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#f3f4f6' }}>{title}</span>
     </div>
 );
 
@@ -110,29 +101,29 @@ const HistoryCard: React.FC<{ item: PredictHistory }> = ({ item }) => {
     const cfg = SIGNAL_CONFIG[item.signalAi];
     return (
         <div style={{
-            background: '#080a0e', border: '1px solid #1a1d26',
-            borderRadius: 8, padding: '10px 12px',
-            display: 'flex', flexDirection: 'column', gap: 6,
+            background: '#070707', border: '1px solid #171717',
+            borderRadius: 12, padding: '12px',
+            display: 'flex', flexDirection: 'column', gap: 8,
         }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: '#5c6478' }}>{item.predictedAt}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11, color: '#71717a' }}>{item.predictedAt}</span>
                 <span style={{
                     display: 'flex', alignItems: 'center', gap: 4,
-                    fontSize: 11, fontWeight: 700,
-                    padding: '2px 8px', borderRadius: 4,
+                    fontSize: 10, fontWeight: 700,
+                    padding: '3px 8px', borderRadius: 999,
                     background: cfg.bg, color: cfg.color,
                     border: `1px solid ${cfg.border}`,
                 }}>
                     {cfg.icon}{item.signalAi}
                 </span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 12, color: '#5c6478' }}>Dự đoán</span>
-                <span style={{ fontSize: 12, color: '#e6eaf0' }}>${fmt(item.predictedPrice)}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontSize: 12, color: '#71717a' }}>Dự đoán</span>
+                <span style={{ fontSize: 12, color: '#f3f4f6' }}>${fmt(item.predictedPrice)}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 12, color: '#5c6478' }}>Thực tế</span>
-                <span style={{ fontSize: 12, color: '#e6eaf0' }}>${fmt(item.actualPrice)}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontSize: 12, color: '#71717a' }}>Thực tế</span>
+                <span style={{ fontSize: 12, color: '#f3f4f6' }}>${fmt(item.actualPrice)}</span>
             </div>
             <div style={{
                 fontSize: 11,
@@ -156,6 +147,7 @@ type model = {
     id: string;
     name: string;
 }
+
 type PredictHistory = {
     predictedPrice: number,
     actualPrice: number,
@@ -163,9 +155,7 @@ type PredictHistory = {
     isCorrect: number,
     predictedAt: string
 }
-// ================================================================
-// MAIN PAGE
-// ================================================================
+
 export default function AIPredictionPage() {
     const selectedCoin = useCoinStore(s => s.selectedCoin);
     const setSelectedCoin = useCoinStore(s => s.setSelectedCoin);
@@ -194,13 +184,13 @@ export default function AIPredictionPage() {
     });
     const [analyzeResult, setAnalyzeResult] = useState<DataAnalyze | null>(null);
     const [predictHistory, setPredictHistory] = useState<PredictHistory[]>([])
+
     const fetchPredictHistory = async () => {
         const response = await axios.get(`http://localhost:8080/api/prediction/history?coinId=${Number(selectedCoin.id)}&page=${0}&size=${8}`)
         const history: PredictHistory[] = await response.data.content
         console.log(history)
         setPredictHistory(history)
     }
-
 
     const connectSocket = (symbol: string) => {
         const ws = new WebSocket(`wss://fstream.binance.com/ws/${symbol.toLocaleLowerCase()}usdt@ticker`);
@@ -227,11 +217,11 @@ export default function AIPredictionPage() {
             console.log('🔌 Ngắt kết nối');
         };
 
-        // ✅ Đóng WebSocket khi component unmount
         return () => {
             ws.close();
         };
     };
+
     const fetchAllModels = async () => {
         const response = await predictionService.getAllModels()
         const models = await response.data;
@@ -251,18 +241,16 @@ export default function AIPredictionPage() {
         }
     }
 
-
     const handleAnalyze = () => {
         setLoading(true);
         try {
             console.log("handle", data)
-            setOpenRisk(true); // mở SAU khi có data
+            setOpenRisk(true);
         } catch (err) {
             console.error(err);
         }
         setLoading(false);
     };
-
 
     useEffect(() => {
         fetchAllModels()
@@ -275,52 +263,117 @@ export default function AIPredictionPage() {
 
     const cfg = SIGNAL_CONFIG[data?.signal ?? 'FLAT'];
     const change = parseFloat(data?.changePercent ?? "0");
-    const isUp = change >= 0; if (loading) return (
-        <AppLayout>
-            <div style={{ color: '#5c6478', padding: 32, textAlign: 'center' }}>
+    const isUp = change >= 0;
+
+    if (loading) return (
+            <div style={{ color: '#71717a', padding: 32, textAlign: 'center' }}>
                 Đang tải dữ liệu...
             </div>
-        </AppLayout>
     );
 
     if (error) return (
-        <AppLayout>
             <div style={{ color: '#f6465d', padding: 32, textAlign: 'center' }}>
                 {error}
             </div>
-        </AppLayout>
     );
 
-    if (!data) return null; // ← sau dòng này, TypeScript hiểu data chắc chắn không null
+    if (!data) return null;
 
     return (
-        <AppLayout>
+        <>
             <div style={{
-                minHeight: '100vh', backgroundColor: '#080a0e',
-                padding: '16px', display: 'flex', flexDirection: 'column', gap: 14,
+                minHeight: '100vh',
+                background: '#000',
+                color: '#e5e7eb',
+                padding: '28px 24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 18,
+                fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
             }}>
 
-                {/* ── Row 1: Selector bar ── */}
                 <div style={{
-                    background: '#0d0f14', border: '1px solid #1a1d26',
-                    borderRadius: 10, padding: '10px 16px',
-                    display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: 16,
                 }}>
-                    {/* Coin */}
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                            <AIPredictIcon />
+                            <span style={{
+                                fontSize: 10,
+                                color: '#6b7280',
+                                letterSpacing: 3,
+                                textTransform: 'uppercase',
+                                fontWeight: 600,
+                            }}>
+                                AI Prediction
+                            </span>
+                        </div>
+
+                        <h1 style={{
+                            fontSize: 24,
+                            fontWeight: 700,
+                            margin: 0,
+                            color: '#fafafa',
+                            letterSpacing: -0.3,
+                        }}>
+                            AI dự đoán giá
+                        </h1>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={fetchAiSignal}
+                        style={{
+                            flexShrink: 0,
+                            padding: '12px 16px',
+                            borderRadius: 12,
+                            cursor: 'pointer',
+                            background: 'linear-gradient(180deg, #f0b90b 0%, #c9920a 100%)',
+                            border: '1px solid #e0ae10',
+                            color: '#111',
+                            fontSize: 13,
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            boxShadow: '0 8px 22px rgba(240,185,11,0.16)',
+                            marginTop: 2,
+                        }}
+                    >
+                        <span style={{ fontSize: 16, lineHeight: 1 }}>⚡</span>
+                        Dự đoán ngay
+                    </button>
+                </div>
+
+                <div style={{
+                    background: 'linear-gradient(180deg, #0b0b0b 0%, #050505 100%)',
+                    border: '1px solid #1a1a1a',
+                    borderRadius: 16,
+                    padding: '14px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    flexWrap: 'wrap',
+                    boxShadow: '0 0 0 1px rgba(255,255,255,0.015)',
+                }}>
                     <div style={{ position: 'relative' }}>
                         <button onClick={() => setIsOpenSearch(o => !o)} style={{
                             display: 'flex', alignItems: 'center', gap: 8,
-                            background: isOpenSearch ? '#1a1d26' : 'transparent',
-                            border: `1px solid ${isOpenSearch ? '#3861fb' : '#1a1d26'}`,
-                            borderRadius: 8, padding: '6px 12px',
+                            background: isOpenSearch ? '#121212' : '#070707',
+                            border: `1px solid ${isOpenSearch ? '#f0b90b55' : '#1a1a1a'}`,
+                            borderRadius: 12, padding: '8px 12px',
                             cursor: 'pointer', transition: 'all 0.15s',
                         }}>
                             <img src={selectedCoin.image} width={20} height={20} style={{ borderRadius: '50%' }} />
-                            <span style={{ color: '#e6eaf0', fontWeight: 700, fontSize: 15 }}>
+                            <span style={{ color: '#f3f4f6', fontWeight: 700, fontSize: 14 }}>
                                 {selectedCoin.symbol}
-                                <span style={{ color: '#5c6478', fontWeight: 400 }}>/USDT</span>
+                                <span style={{ color: '#71717a', fontWeight: 400 }}>/USDT</span>
                             </span>
-                            <ChevronDown size={13} color="#5c6478" style={{
+                            <ChevronDown size={13} color="#71717a" style={{
                                 transform: isOpenSearch ? 'rotate(180deg)' : 'rotate(0)',
                                 transition: 'transform 0.2s',
                             }} />
@@ -336,137 +389,126 @@ export default function AIPredictionPage() {
                         )}
                     </div>
 
-                    {/* Timeframe */}
-                    <div style={{ display: 'flex', gap: 4 }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
                         {TIMEFRAMES.map(tf => (
                             <button key={tf} onClick={() => setActiveTf(tf)} style={{
-                                background: activeTf === tf ? '#1a1d26' : 'transparent',
-                                border: `1px solid ${activeTf === tf ? '#3a3f4e' : '#1a1d26'}`,
-                                color: activeTf === tf ? '#e6eaf0' : '#5c6478',
-                                fontSize: 12, fontWeight: activeTf === tf ? 700 : 400,
-                                padding: '4px 10px', borderRadius: 6, cursor: 'pointer',
+                                background: activeTf === tf ? '#171107' : '#070707',
+                                border: `1px solid ${activeTf === tf ? '#4a380e' : '#1a1a1a'}`,
+                                color: activeTf === tf ? '#f0b90b' : '#71717a',
+                                fontSize: 11, fontWeight: activeTf === tf ? 700 : 500,
+                                padding: '7px 12px', borderRadius: 10, cursor: 'pointer',
                             }}>{tf}</button>
                         ))}
                     </div>
 
-                    {/* Model */}
-                    <div style={{ display: 'flex', gap: 4 }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {models.map(m => (
                             <button key={m.id} onClick={() => setActiveModel(m.name)} style={{
-                                background: activeModel === m.name ? 'rgba(56,97,251,0.15)' : 'transparent',
-                                border: `1px solid ${activeModel === m.name ? '#3861fb' : '#1a1d26'}`,
-                                color: activeModel === m.name ? '#3861fb' : '#5c6478',
-                                fontSize: 11, fontWeight: activeModel === m.name ? 700 : 400,
-                                padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
+                                background: activeModel === m.name ? 'rgba(240,185,11,0.10)' : '#070707',
+                                border: `1px solid ${activeModel === m.name ? '#4a380e' : '#1a1a1a'}`,
+                                color: activeModel === m.name ? '#f0b90b' : '#71717a',
+                                fontSize: 11, fontWeight: activeModel === m.name ? 700 : 500,
+                                padding: '7px 10px', borderRadius: 10, cursor: 'pointer',
                             }}>{m.name}</button>
                         ))}
                     </div>
 
                     <span style={{
                         marginLeft: 'auto',
-                        background: 'rgba(56,97,251,0.12)', color: '#3861fb',
-                        fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
+                        background: 'rgba(240,185,11,0.10)', color: '#f0b90b',
+                        fontSize: 11, fontWeight: 700, padding: '6px 10px', borderRadius: 999,
+                        border: '1px solid rgba(240,185,11,0.22)'
                     }}>
                         AI · Cập nhật 5 phút trước
                     </span>
-                    <button type="button" className="btn btn-warning fw-bold text-wg" onClick={fetchAiSignal}>Dự đoán ngay</button>
                 </div>
 
-                {/* ── Row 2: Stat cards ── */}
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
                     <StatCard
                         label="Giá hiện tại"
-                        value={<span style={{ color: '#e6eaf0' }}>${fmt(coinPrice?.lastPrice)}</span>}
+                        value={<span style={{ color: '#f3f4f6' }}>${fmt(coinPrice?.lastPrice)}</span>}
                         sub={<span style={{ color: isUp ? '#0ecb81' : '#f6465d' }}>
                             {isUp ? '▲' : '▼'} {isUp ? '+' : ''}{coinPrice?.priceChangePercent}% (24h)
                         </span>}
                     />
                     <StatCard
                         label="Giá dự đoán"
-                        value={<span style={{ color: '#378add' }}>${fmt(parseFloat(data.predictedPrice))}</span>}
-                        sub={<span style={{ color: '#5c6478' }}>Target: {activeTf} tới</span>}
-                        accent="rgba(55,138,221,0.2)"
+                        value={<span style={{ color: '#60a5fa' }}>${fmt(parseFloat(data.predictedPrice))}</span>}
+                        sub={<span style={{ color: '#8b8f97' }}>Target: {activeTf} tới</span>}
+                        accent="rgba(96,165,250,0.22)"
                     />
                     <StatCard
                         label="Độ tin cậy"
-                        value={<span style={{ color: '#ef9f27' }}>{data.confidence}%</span>}
-                        sub={<Bar value={parseFloat(data.confidence)} color="#ef9f27" />}
-                        accent="rgba(239,159,39,0.2)"
+                        value={<span style={{ color: '#f0b90b' }}>{data.confidence}%</span>}
+                        sub={<Bar value={parseFloat(data.confidence)} color="#f0b90b" />}
+                        accent="rgba(240,185,11,0.22)"
                     />
                     <StatCard
                         label="Tín hiệu"
                         value={
-                            <div className='d-flex justify-content-evenly'>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                                 <div style={{
                                     display: 'inline-flex', alignItems: 'center', gap: 6,
                                     background: cfg.bg, color: cfg.color,
                                     border: `1px solid ${cfg.border}`,
-                                    padding: '4px 14px', borderRadius: 8, fontSize: 18,
+                                    padding: '6px 12px', borderRadius: 10, fontSize: 15, fontWeight: 700,
                                 }}>
                                     {cfg.icon} {data.signal}
                                 </div>
-                                <div>
-                                    <button style={{
-                                        marginLeft: 8,
-                                        background: '#fcd535',          // vàng Binance
-                                        color: '#0b0e11',
-                                        border: 'none',
-                                        padding: '6px 12px',
-                                        borderRadius: 6,
-                                        fontSize: 15,
-                                        fontWeight: 600,
+                                <button
+                                    style={{
+                                        background: 'linear-gradient(180deg, #f0b90b 0%, #c9920a 100%)',
+                                        color: '#111',
+                                        border: '1px solid #e0ae10',
+                                        padding: '8px 12px',
+                                        borderRadius: 10,
+                                        fontSize: 12,
+                                        fontWeight: 700,
                                         cursor: 'pointer',
-                                        transition: 'all 0.2s ease',
                                     }}
-                                        onClick={handleAnalyze}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.background = '#f0b90b';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.background = '#fcd535';
-                                        }}>Phân tích rủi ro </button>
-                                </div>
+                                    onClick={handleAnalyze}
+                                >
+                                    Phân tích rủi ro
+                                </button>
                             </div>
                         }
-                        sub={<span style={{ color: '#5c6478' }}></span>}
+                        sub={<span style={{ color: '#8b8f97' }}>Tín hiệu AI hiện tại</span>}
                         accent={cfg.border}
                     />
                 </div>
 
-                {/* ── Row 3: Chart + Signal detail ── */}
-                <div style={{ display: 'flex', gap: 14 }}>
-                    {/* Chart */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.45fr) minmax(320px, 0.9fr)', gap: 14 }}>
                     <div style={{
-                        flex: 2, background: '#0d0f14', border: '1px solid #1a1d26',
-                        borderRadius: 10, padding: '16px',
+                        background: 'linear-gradient(180deg, #0b0b0b 0%, #050505 100%)',
+                        border: '1px solid #1a1a1a',
+                        borderRadius: 16, padding: '16px',
                         display: 'flex', flexDirection: 'column', gap: 12,
-                        width: "65%"
+                        boxShadow: '0 0 0 1px rgba(255,255,255,0.015)',
                     }}>
                         <SectionTitle
                             icon={<BarChart2 size={14} color="#fff" />}
                             title="Biểu đồ dự đoán giá"
-                            dot="rgba(55,138,221,0.3)"
+                            dot="rgba(96,165,250,0.22)"
                         />
                         <div style={{
-                            background: '#080a0e', border: '1px solid #1a1d26',
-                            borderRadius: 8, height: 220,
+                            background: '#070707', border: '1px solid #171717',
+                            borderRadius: 12, height: 260,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             flexDirection: 'column', gap: 8,
-                            color: '#5c6478', fontSize: 13,
+                            color: '#71717a', fontSize: 13,
                         }}>
-                            {/* TODO: Thay bằng <PriceChart /> + đường dự đoán */}
-                            <svg width="60" height="36" viewBox="0 0 60 36" fill="none">
-                                <polyline points="2,32 10,24 18,26 28,16 36,18 44,10 52,12"
-                                    stroke="#378add" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                <polyline points="44,10 52,6 58,2"
-                                    stroke="#0ecb81" strokeWidth="1.5" strokeDasharray="3 2"
+                            <svg width="72" height="42" viewBox="0 0 72 42" fill="none">
+                                <polyline points="2,36 12,28 22,30 34,18 44,20 54,12 64,14"
+                                    stroke="#60a5fa" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                                <polyline points="54,12 62,8 70,4"
+                                    stroke="#0ecb81" strokeWidth="1.7" strokeDasharray="3 2"
                                     strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                             Tích hợp chart tại đây
                         </div>
-                        <div style={{ display: 'flex', gap: 20 }}>
+                        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
                             {[
-                                { color: '#378add', dash: false, area: false, label: 'Giá thực tế' },
+                                { color: '#60a5fa', dash: false, area: false, label: 'Giá thực tế' },
                                 { color: '#0ecb81', dash: true, area: false, label: 'Dự đoán' },
                                 { color: 'rgba(14,203,129,0.12)', dash: false, area: true, label: 'Khoảng tin cậy' },
                             ].map(l => (
@@ -475,33 +517,33 @@ export default function AIPredictionPage() {
                                         ? <div style={{ width: 20, height: 8, background: l.color, borderRadius: 2 }} />
                                         : <div style={{ width: 20, height: 0, borderTop: `2px ${l.dash ? 'dashed' : 'solid'} ${l.color}` }} />
                                     }
-                                    <span style={{ fontSize: 11, color: '#5c6478' }}>{l.label}</span>
+                                    <span style={{ fontSize: 11, color: '#71717a' }}>{l.label}</span>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    {/* Signal detail */}
                     <div style={{
-                        width: "35%", flexShrink: 0,
-                        background: '#0d0f14', border: '1px solid #1a1d26',
-                        borderRadius: 10, padding: '16px',
+                        background: 'linear-gradient(180deg, #0b0b0b 0%, #050505 100%)',
+                        border: '1px solid #1a1a1a',
+                        borderRadius: 16, padding: '16px',
                         display: 'flex', flexDirection: 'column', gap: 12,
+                        boxShadow: '0 0 0 1px rgba(255,255,255,0.015)',
                     }}>
                         <SectionTitle
                             icon={<Brain size={14} color="#fff" />}
                             title="Chi tiết tín hiệu"
-                            dot="rgba(14,203,129,0.25)"
+                            dot="rgba(14,203,129,0.2)"
                         />
                         {[
                             {
                                 label: 'Mô hình', value: (
-                                    <div style={{ display: 'flex', gap: 4 }}>
+                                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                         {models.map(m => (
                                             <span key={m.id} style={{
-                                                background: '#1a1d26', color: '#848e9c',
-                                                fontSize: 10, padding: '2px 6px',
-                                                borderRadius: 4, border: '1px solid #2a2e39',
+                                                background: '#111111', color: '#9ca3af',
+                                                fontSize: 10, padding: '3px 7px',
+                                                borderRadius: 999, border: '1px solid #262626',
                                             }}>{m.name}</span>
                                         ))}
                                     </div>
@@ -515,26 +557,26 @@ export default function AIPredictionPage() {
                                 )
                             },
                             { label: '% thay đổi dự đoán', value: <span style={{ color: '#0ecb81', fontWeight: 700 }}>+{data.changePercent}%</span> },
-                            { label: 'Giá dự đoán', value: <span style={{ color: '#e6eaf0' }}>${fmt(parseFloat(data.predictedPrice))}</span> },
+                            { label: 'Giá dự đoán', value: <span style={{ color: '#f3f4f6' }}>${fmt(parseFloat(data.predictedPrice))}</span> },
                         ].map(row => (
                             <div key={row.label} style={{
                                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                paddingBottom: 8, borderBottom: '1px solid #1a1d26',
+                                gap: 12, paddingBottom: 10, borderBottom: '1px solid #171717',
                             }}>
-                                <span style={{ fontSize: 12, color: '#5c6478' }}>{row.label}</span>
-                                <span style={{ fontSize: 13 }}>{row.value}</span>
+                                <span style={{ fontSize: 12, color: '#71717a' }}>{row.label}</span>
+                                <span style={{ fontSize: 13, textAlign: 'right' }}>{row.value}</span>
                             </div>
                         ))}
-                        <span style={{ fontSize: 12, color: '#5c6478', fontWeight: 600 }}>Độ chính xác mô hình</span>
+                        <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600, marginTop: 2 }}>Độ chính xác mô hình</span>
                         {[
                             { label: 'Đúng chiều', value: `${data.directionAcc}%`, pct: data.directionAcc, color: '#0ecb81' },
-                            { label: 'MAE', value: `$${data.mae}`, pct: 60, color: '#378add' },
-                            { label: 'MAPE', value: `${data.mape}%`, pct: 45, color: '#ef9f27' },
+                            { label: 'MAE', value: `$${data.mae}`, pct: 60, color: '#60a5fa' },
+                            { label: 'MAPE', value: `${data.mape}%`, pct: 45, color: '#f0b90b' },
                         ].map(m => (
-                            <div key={m.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <div key={m.label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ fontSize: 11, color: '#5c6478' }}>{m.label}</span>
-                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#e6eaf0' }}>{m.value}</span>
+                                    <span style={{ fontSize: 11, color: '#71717a' }}>{m.label}</span>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#f3f4f6' }}>{m.value}</span>
                                 </div>
                                 <Bar value={Number(m.pct)} color={m.color} />
                             </div>
@@ -542,97 +584,40 @@ export default function AIPredictionPage() {
                     </div>
                 </div>
 
-                {/* ── Row 4: Risk + History ── */}
-                <div style={{ display: 'flex', gap: 14 }}>
-
-
-                    {/* History */}
-                    <div style={{
-                        flex: 1, background: '#0d0f14', border: '1px solid #1a1d26',
-                        borderRadius: 10, padding: '16px',
-                        display: 'flex', flexDirection: 'column', gap: 12,
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <div style={{
-                                    width: 28, height: 28, borderRadius: 8,
-                                    background: 'rgba(246,70,93,0.25)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}>
-                                    <History size={14} color="#fff" />
-                                </div>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: '#e6eaf0' }}>Lịch sử dự đoán gần đây</span>
-                            </div>
-                            <span style={{
-                                fontSize: 11, fontWeight: 700, color: '#0ecb81',
-                                background: 'rgba(14,203,129,0.1)',
-                                padding: '2px 8px', borderRadius: 4,
+                <div style={{
+                    background: 'linear-gradient(180deg, #0b0b0b 0%, #050505 100%)',
+                    border: '1px solid #1a1a1a',
+                    borderRadius: 16,
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                    boxShadow: '0 0 0 1px rgba(255,255,255,0.015)',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{
+                                width: 28, height: 28, borderRadius: 8,
+                                background: 'rgba(246,70,93,0.18)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}>
-                                Đúng {predictHistory.filter(h => h.isCorrect).length}/{predictHistory.length}
-                            </span>
+                                <History size={14} color="#fff" />
+                            </div>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#f3f4f6' }}>Lịch sử dự đoán gần đây</span>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
-                            {predictHistory.map((item, i) => <HistoryCard key={i} item={item} />)}
-                        </div>
+                        <span style={{
+                            fontSize: 11, fontWeight: 700, color: '#0ecb81',
+                            background: 'rgba(14,203,129,0.1)',
+                            padding: '4px 10px', borderRadius: 999,
+                            border: '1px solid rgba(14,203,129,0.2)'
+                        }}>
+                            Đúng {predictHistory.filter(h => h.isCorrect).length}/{predictHistory.length}
+                        </span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10 }}>
+                        {predictHistory.map((item, i) => <HistoryCard key={i} item={item} />)}
                     </div>
                 </div>
-
-                {/* ── Row 5: Model performance ── */}
-                {/* <div style={{
-                    background: '#0d0f14', border: '1px solid #1a1d26',
-                    borderRadius: 10, padding: '16px',
-                    display: 'flex', flexDirection: 'column', gap: 14,
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <SectionTitle
-                            icon={<Zap size={14} color="#fff" />}
-                            title="Hiệu suất mô hình theo thời gian"
-                            dot="rgba(56,97,251,0.3)"
-                        />
-                        <span style={{ fontSize: 12, color: '#5c6478' }}>30 ngày gần nhất</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 12 }}>
-                        {[
-                            { name: 'XGBOOST', winrate: 76, mae: 214, color: '#3861fb' },
-                            { name: 'LSTM', winrate: 71, mae: 280, color: '#0ecb81' },
-                            { name: 'GRU', winrate: 68, mae: 310, color: '#ef9f27' },
-                        ].map(m => (
-                            <div key={m.name}
-                                onClick={() => setActiveModel(m.name)}
-                                style={{
-                                    flex: 1, background: '#080a0e', cursor: 'pointer',
-                                    border: `1px solid ${activeModel === m.name ? m.color : '#1a1d26'}`,
-                                    borderRadius: 8, padding: '12px 14px',
-                                    display: 'flex', flexDirection: 'column', gap: 8,
-                                    transition: 'border-color 0.15s',
-                                }}
-                            >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 13, fontWeight: 700, color: m.color }}>{m.name}</span>
-                                    {activeModel === m.name && (
-                                        <span style={{
-                                            fontSize: 10, fontWeight: 700,
-                                            background: `${m.color}22`, color: m.color,
-                                            padding: '1px 6px', borderRadius: 4,
-                                        }}>Đang dùng</span>
-                                    )}
-                                </div>
-                                <div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                        <span style={{ fontSize: 11, color: '#5c6478' }}>Winrate</span>
-                                        <span style={{ fontSize: 11, fontWeight: 700, color: '#e6eaf0' }}>{m.winrate}%</span>
-                                    </div>
-                                    <Bar value={m.winrate} color={m.color} />
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ fontSize: 11, color: '#5c6478' }}>MAE trung bình</span>
-                                    <span style={{ fontSize: 11, color: '#e6eaf0' }}>${m.mae}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div> */}
-
             </div>
             {openRisk && (
                 <RiskDrawer
@@ -642,7 +627,22 @@ export default function AIPredictionPage() {
                     result={analyzeResult}
                     setResult={setAnalyzeResult}
                 />
-            )}
-        </AppLayout>
+            )};
+            </>)
+}
+
+function AIPredictIcon() {
+    return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2v4" />
+            <path d="M12 18v4" />
+            <path d="M4.93 4.93l2.83 2.83" />
+            <path d="M16.24 16.24l2.83 2.83" />
+            <path d="M2 12h4" />
+            <path d="M18 12h4" />
+            <path d="M4.93 19.07l2.83-2.83" />
+            <path d="M16.24 7.76l2.83-2.83" />
+            <circle cx="12" cy="12" r="4" />
+        </svg>
     );
 }

@@ -21,7 +21,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private JwtUtils jwtUtils;
+    private final JwtUtils jwtUtils;
     private final UserDetailsService userDetailsService;
 
     @Override
@@ -45,7 +45,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 2. Cắt bỏ chữ "Bearer " để lấy token trần
         jwt = authHeader.substring(7);
 
-        // 3. Trích xuất email từ token (cần viết hàm extractUsername trong JwtService)
         email = jwtUtils.extractEmail(jwt);
 
         // 4. Nếu có email và chưa được xác thực trong Context hiện tại

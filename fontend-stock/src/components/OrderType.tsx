@@ -42,6 +42,7 @@ export const OrderType = () => {
         if (item && 'label' in item) {
             setSelectedType(item.key as string);
         }
+        
     };
 
     const menuProps = {

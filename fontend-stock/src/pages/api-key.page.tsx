@@ -1,116 +1,36 @@
-import React, { useState } from "react";
-import { AppLayout } from "../layout/MainLayout";
+import React, { useEffect, useState } from "react";
+import { apiKeyService } from "../services/apiKeyService";
+import { keyAccountService } from "../services/keyAccountService";
 
 type ApiKeyItem = {
-    id: number;
-    label: string;
+    id: string;
+    nameAccount: string;
     apiKey: string;
     secretKey: string;
-    permissions: string[];
+    isActive: boolean;
     createdAt: string;
-    lastUsed: string;
-    active: boolean;
 };
 
-type KeyFieldProps = {
-    label: string;
-    value: string;
-    visible: boolean;
-    onToggle: () => void;
-};
+
 
 type KeyCardProps = {
     keyData: ApiKeyItem;
-    onDelete: (id: number) => void;
-};
 
+};
 type AddKeyFormProps = {
-    onAdd: (item: ApiKeyItem) => void;
+    setKeyData: (keyData: ApiKeyItem) => void;
     onCancel: () => void;
 };
 
-const MOCK_KEYS: ApiKeyItem[] = [
-    {
-        id: 1,
-        label: "Main account",
-        apiKey: "vk8mNzQ3Rp2XcLjT9sYeAf1WoDhEbKui",
-        secretKey: "x7GpHnVwCqZdMoJtLrAkYsBeFiUmXcNv",
-        permissions: ["Read", "Trade"],
-        createdAt: "15/01/2024",
-        lastUsed: "2 phút trước",
-        active: true,
-    },
-];
 
 function maskKey(key: string) {
     if (key.length <= 10) return key;
     return key.slice(0, 6) + "••••••••••••••••" + key.slice(-4);
 }
 
-function KeyField({ label, value, visible, onToggle }: KeyFieldProps) {
-    const [copied, setCopied] = useState(false);
 
-    function copy() {
-        navigator.clipboard.writeText(value);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-    }
-
-    return (
-        <div style={{ marginBottom: 10 }}>
-            <div
-                style={{
-                    fontSize: 10,
-                    color: "#6b7280",
-                    letterSpacing: 1.4,
-                    marginBottom: 6,
-                    textTransform: "uppercase",
-                    fontWeight: 600,
-                }}
-            >
-                {label}
-            </div>
-
-            <div
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    background: "#050505",
-                    border: "1px solid #1a1a1a",
-                    borderRadius: 10,
-                    padding: "10px 12px",
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
-                }}
-            >
-                <span
-                    style={{
-                        flex: 1,
-                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                        fontSize: 12,
-                        color: "#b5bcc8",
-                        letterSpacing: visible ? 0.3 : 1.8,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                    }}
-                >
-                    {visible ? value : maskKey(value)}
-                </span>
-
-                <button type="button" onClick={onToggle} title={visible ? "Ẩn" : "Hiện"} style={iconBtn}>
-                    {visible ? <EyeOff /> : <Eye />}
-                </button>
-
-                <button type="button" onClick={copy} title="Copy" style={iconBtn}>
-                    {copied ? <Check /> : <Copy />}
-                </button>
-            </div>
-        </div>
-    );
-}
-
-function KeyCard({ keyData, onDelete }: KeyCardProps) {
+function KeyCard({ keyData }: KeyCardProps) {
+    console.log(keyData)
     const [visibleApi, setVisibleApi] = useState(false);
     const [visibleSecret, setVisibleSecret] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
@@ -153,7 +73,7 @@ function KeyCard({ keyData, onDelete }: KeyCardProps) {
                             fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
                         }}
                     >
-                        {keyData.label}
+                        {keyData.nameAccount}
                     </div>
 
                     <div
@@ -172,8 +92,8 @@ function KeyCard({ keyData, onDelete }: KeyCardProps) {
                         display: "flex",
                         alignItems: "center",
                         gap: 5,
-                        background: keyData.active ? "#07130b" : "#151515",
-                        border: keyData.active ? "1px solid #16371f" : "1px solid #262626",
+                        background: keyData.isActive ? "#07130b" : "#151515",
+                        border: keyData.isActive ? "1px solid #16371f" : "1px solid #262626",
                         borderRadius: 999,
                         padding: "4px 10px",
                         whiteSpace: "nowrap",
@@ -185,37 +105,79 @@ function KeyCard({ keyData, onDelete }: KeyCardProps) {
                             width: 6,
                             height: 6,
                             borderRadius: "50%",
-                            background: keyData.active ? "#22c55e" : "#525252",
-                            boxShadow: keyData.active ? "0 0 8px rgba(34,197,94,0.65)" : "none",
+                            background: keyData.isActive ? "#22c55e" : "#525252",
+                            boxShadow: keyData.isActive ? "0 0 8px rgba(34,197,94,0.65)" : "none",
                         }}
                     />
                     <span
                         style={{
                             fontSize: 10,
-                            color: keyData.active ? "#4ade80" : "#a1a1aa",
+                            color: keyData.isActive ? "#4ade80" : "#a1a1aa",
                             fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                             letterSpacing: 0.8,
                         }}
                     >
-                        {keyData.active ? "ACTIVE" : "INACTIVE"}
+                        {keyData.isActive ? "ACTIVE" : "INACTIVE"}
                     </span>
                 </div>
             </div>
+            <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+    <div>
+        <div
+            style={{
+                fontSize: 10,
+                color: "#6b7280",
+                letterSpacing: 1.1,
+                textTransform: "uppercase",
+                marginBottom: 4,
+            }}
+        >
+            API Key
+        </div>
+        <div
+            style={{
+                fontSize: 12,
+                color: "#e5e7eb",
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                background: "#080808",
+                border: "1px solid #1f1f1f",
+                borderRadius: 10,
+                padding: "10px 12px",
+                wordBreak: "break-all",
+            }}
+        >
+            {visibleApi ? keyData.apiKey : maskKey(keyData.apiKey)}
+        </div>
+    </div>
 
-            <KeyField
-                label="API KEY"
-                value={keyData.apiKey}
-                visible={visibleApi}
-                onToggle={() => setVisibleApi((v) => !v)}
-            />
-
-            <KeyField
-                label="SECRET KEY"
-                value={keyData.secretKey}
-                visible={visibleSecret}
-                onToggle={() => setVisibleSecret((v) => !v)}
-            />
-
+    <div>
+        <div
+            style={{
+                fontSize: 10,
+                color: "#6b7280",
+                letterSpacing: 1.1,
+                textTransform: "uppercase",
+                marginBottom: 4,
+            }}
+        >
+            Secret Key
+        </div>
+        <div
+            style={{
+                fontSize: 12,
+                color: "#e5e7eb",
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                background: "#080808",
+                border: "1px solid #1f1f1f",
+                borderRadius: 10,
+                padding: "10px 12px",
+                wordBreak: "break-all",
+            }}
+        >
+            {visibleSecret ? keyData.secretKey : maskKey(keyData.secretKey)}
+        </div>
+    </div>
+</div>
             <div
                 style={{
                     display: "flex",
@@ -226,28 +188,8 @@ function KeyCard({ keyData, onDelete }: KeyCardProps) {
                     flexWrap: "wrap",
                 }}
             >
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {keyData.permissions.map((p) => (
-                        <span
-                            key={p}
-                            style={{
-                                fontSize: 10,
-                                padding: "4px 9px",
-                                borderRadius: 999,
-                                background: p === "Trade" ? "#171107" : "#0d0d0d",
-                                border: p === "Trade" ? "1px solid #4a380e" : "1px solid #232323",
-                                color: p === "Trade" ? "#f0b90b" : "#a1a1aa",
-                                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                                letterSpacing: 0.3,
-                            }}
-                        >
-                            {p}
-                        </span>
-                    ))}
-                </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ fontSize: 11, color: "#5f6368" }}>Dùng {keyData.lastUsed}</span>
 
                     {confirmDelete ? (
                         <div style={{ display: "flex", gap: 6 }}>
@@ -266,7 +208,6 @@ function KeyCard({ keyData, onDelete }: KeyCardProps) {
 
                             <button
                                 type="button"
-                                onClick={() => onDelete(keyData.id)}
                                 style={{
                                     ...smallBtn,
                                     color: "#fca5a5",
@@ -297,10 +238,12 @@ function KeyCard({ keyData, onDelete }: KeyCardProps) {
     );
 }
 
-function AddKeyForm({ onAdd, onCancel }: AddKeyFormProps) {
-    const [label, setLabel] = useState("");
-    const [apiKey, setApiKey] = useState("");
-    const [secretKey, setSecretKey] = useState("");
+
+function AddKeyForm({ setKeyData, onCancel }: AddKeyFormProps) {
+    const [label, setLabel] = useState<string>("");
+    const [apiKey, setApiKey] = useState<string>("");
+    const [secretKey, setSecretKey] = useState<string>("");
+
     const [showSecret, setShowSecret] = useState(false);
     const [agreed, setAgreed] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -309,19 +252,17 @@ function AddKeyForm({ onAdd, onCancel }: AddKeyFormProps) {
         if (!label || !apiKey || !secretKey || !agreed) return;
 
         setLoading(true);
-        await new Promise((r) => setTimeout(r, 1200));
-
-        onAdd({
-            id: Date.now(),
-            label,
-            apiKey,
-            secretKey,
-            permissions: ["Read", "Trade"],
-            createdAt: new Date().toLocaleDateString("vi-VN"),
-            lastUsed: "Vừa xong",
-            active: true,
+        const response = await apiKeyService.addKey( label, apiKey, secretKey );
+        console.log(response.data.data);
+        const key:ApiKeyItem = await response.data.data
+        setKeyData({
+            id :key.id,
+            apiKey: key.apiKey,
+            secretKey: key.secretKey,
+            nameAccount: key.nameAccount,
+            isActive: key.isActive,
+            createdAt: key.createdAt,
         });
-
         setLoading(false);
     }
 
@@ -575,20 +516,27 @@ function AddKeyForm({ onAdd, onCancel }: AddKeyFormProps) {
 }
 
 export default function ApiKeyPage() {
-    const [keys, setKeys] = useState<ApiKeyItem[]>(MOCK_KEYS);
+    const [key, setKeyData] = useState<ApiKeyItem>();
     const [showForm, setShowForm] = useState(false);
 
-    function handleAdd(newKey: ApiKeyItem) {
-        setKeys((k) => [...k, newKey]);
-        setShowForm(false);
+    const fetchKeyItem = async () => {
+        const response = await apiKeyService.getKeys()
+        const data:ApiKeyItem = await response.data.data
+        setKeyData({
+            id: data.id,
+            apiKey: data.apiKey,
+            secretKey: data.secretKey,
+            nameAccount: data.nameAccount,
+            isActive: data.isActive,
+            createdAt: data.createdAt,
+        })
     }
+    useEffect(() => {
+        fetchKeyItem()
+    },[])
 
-    function handleDelete(id: number) {
-        setKeys((k) => k.filter((item) => item.id !== id));
-    }
 
     return (
-        <AppLayout>
             <div
                 style={{
                     fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
@@ -600,12 +548,12 @@ export default function ApiKeyPage() {
                 }}
             >
                 <style>{`
-          @keyframes spin { to { transform: rotate(360deg); } }
-          input { outline: none; }
-          input:focus {
+            @keyframes spin { to { transform: rotate(360deg); } }
+            input { outline: none; }
+            input:focus {
             border-color: #f0b90b !important;
             box-shadow: 0 0 0 3px rgba(240,185,11,0.08);
-          }
+            }
         `}</style>
 
                 <div
@@ -685,7 +633,7 @@ export default function ApiKeyPage() {
                     </button>
                 </div>
 
-                {keys.length === 0 ? (
+                {key === null ? (
                     <div
                         style={{
                             textAlign: "center",
@@ -708,16 +656,15 @@ export default function ApiKeyPage() {
                             gap: 16,
                         }}
                     >
-                        {keys.map((k) => (
-                            <KeyCard key={k.id} keyData={k} onDelete={handleDelete} />
-                        ))}
+                        {key && (
+                            <KeyCard  key={key.nameAccount} keyData={key} />
+                        )}
                     </div>
                 )}
 
 
-                {showForm && <AddKeyForm onAdd={handleAdd} onCancel={() => setShowForm(false)} />}
+                {showForm && <AddKeyForm setKeyData={setKeyData} onCancel={() => setShowForm(false)} />}
             </div>
-        </AppLayout>
     );
 }
 

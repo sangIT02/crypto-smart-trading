@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { userService } from '../services';
+import { setTokens } from '../services/auth';
 
 export type LoginModalProps = {
     show: boolean;
@@ -42,17 +43,14 @@ export const LoginFormModal = ({ show, onClose }: LoginModalProps) => {
         e.preventDefault(); // Ngăn chặn reload trang mặc định của form
 
         try {
-            debugger
             const res = await userService.login(email, password);
-            const apiData = res.data as LoginResponse; // Ép kiểu để TS hiểu
+            const apiData = res.data
             console.log(apiData)
             if (apiData.code === 200 && apiData.data) {
-                localStorage.setItem("accessToken", apiData.data.access_token);
-                localStorage.setItem("refreshToken", apiData.data.refresh_token);
-
-                localStorage.setItem("user", JSON.stringify(apiData.data.user_infor));
-
-                // 2. Chuyển trang (window.location hợp lệ hoàn toàn trong TS)
+                setTokens({
+                    accessToken: apiData.data.access_token,
+                    refreshToken: apiData.data.refresh_token
+                });
                 window.location.href = "/home";
             } else {
                 alert("Đăng nhập thất bại: " + apiData.message);

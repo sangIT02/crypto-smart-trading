@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from "react";
-import { AppLayout } from "../layout/MainLayout";
 
 type GridStatus = "running" | "paused" | "stopped";
 
@@ -576,7 +575,6 @@ export const GridTrading = () => {
     }
 
     return (
-        <AppLayout>
             <div
                 style={{
                     fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
@@ -698,7 +696,6 @@ export const GridTrading = () => {
 
                 {showForm && <AddGridForm onAdd={handleAdd} onCancel={() => setShowForm(false)} />}
             </div>
-        </AppLayout>
     );
 };
 

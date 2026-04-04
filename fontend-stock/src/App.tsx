@@ -15,6 +15,7 @@ import AIPredictionPage from './pages/ai-prediction.page';
 import ProfilePage from './pages/ProfilePage';
 import ApiKeyPage from './pages/api-key.page';
 import PriceAlertsPage from './pages/alert.page';
+import { AppLayout } from './layout/MainLayout';
 
 function App() {
   const apiUrl = import.meta.env.VITE_API_URL;
@@ -31,6 +32,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+      <Route element={<AppLayout />}>
         <Route path="/home" element={<DashboardPage />} />
         <Route path="/market" element={<Market />} />
         <Route path="/ai-prediction" element={<AIPredictionPage />} />
@@ -42,11 +44,11 @@ function App() {
         <Route path="/alert" element={<PriceAlertsPage />} />
         <Route path="/apikey" element={<ApiKeyPage />} />
         <Route path="/profile" element={<ProfilePage />} />
-
+        </Route>
       </Routes>
-      <Routes>
-        <Route path='register' element={<RegisterPage/>}></Route>
-      </Routes>
+    <Routes>
+      <Route path="/register" element={<RegisterPage />} />
+    </Routes>
     </BrowserRouter>
 
   );

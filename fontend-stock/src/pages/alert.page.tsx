@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from "react";
-import { AppLayout } from "../layout/MainLayout";
 
 type AlertCondition = ">=" | "<=" | "crosses";
 type AlertStatus = "active" | "paused" | "triggered";
@@ -797,7 +796,6 @@ export default function PriceAlertsPage() {
     }
 
     return (
-        <AppLayout>
             <div
                 style={{
                     fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
@@ -945,7 +943,6 @@ export default function PriceAlertsPage() {
 
                 {showForm && <AddAlertForm onAdd={handleAdd} onCancel={() => setShowForm(false)} />}
             </div>
-        </AppLayout>
     );
 }
 

@@ -22,7 +22,7 @@ public class CustomUserDetails implements UserDetails {
         if (user.getRole() == null) {
             return Collections.emptyList();
         }
-        return List.of(new SimpleGrantedAuthority(user.getRole().getName()));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().getName()));
     }
 
     public String getPassword() {
@@ -30,7 +30,7 @@ public class CustomUserDetails implements UserDetails {
     }
 
     public String getUsername() {
-        return "";
+        return user.getEmail();
     }
 
     public boolean isAccountNonExpired() {
