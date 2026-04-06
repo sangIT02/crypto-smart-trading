@@ -8,9 +8,10 @@ import {
     type CandlestickData,
     type UTCTimestamp
 } from 'lightweight-charts';
-import { OrderForm } from '../OrderForm';
+import { OrderForm } from '../order/OrderForm';
 import { CoinSelector, MOCK_COINS } from '../TabBtn';
 import { useCoinStore } from '../../store/coinStore';
+import { PositionContainer } from '../position/PositionContainer';
 
 // ================================================================
 // CONFIG

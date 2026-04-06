@@ -186,7 +186,7 @@ export default function AIPredictionPage() {
     const [predictHistory, setPredictHistory] = useState<PredictHistory[]>([])
 
     const fetchPredictHistory = async () => {
-        const response = await axios.get(`http://localhost:8080/api/prediction/history?coinId=${Number(selectedCoin.id)}&page=${0}&size=${8}`)
+        const response = await predictionService.getHistoriPredict(selectedCoin.id)
         const history: PredictHistory[] = await response.data.content
         console.log(history)
         setPredictHistory(history)
@@ -627,7 +627,7 @@ export default function AIPredictionPage() {
                     result={analyzeResult}
                     setResult={setAnalyzeResult}
                 />
-            )};
+            )}
             </>)
 }
 

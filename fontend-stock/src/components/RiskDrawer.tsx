@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { PredictionData, Signal } from "../pages/ai-prediction.page";
 import axios from "axios";
+import { getAccessToken } from "../services/auth";
 type RiskDrawerProps = {
     open: boolean;
     onClose: () => void;
@@ -78,7 +79,7 @@ export default function RiskDrawer({ open, onClose, prediction,result, setResult
     const fetchAnalyzeData = async () => {
         try {
             setLoading(true); // 🔥 set trước khi gọi API
-    
+            const accessToken = getAccessToken();
             const url = `http://localhost:8080/chat`;
     
             const body = {
@@ -87,7 +88,11 @@ export default function RiskDrawer({ open, onClose, prediction,result, setResult
                 risk: risk
             };
     
-            const response = await axios.post(url, body);
+            const response = await axios.post(url, body,{
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+            });
             const data = response.data;
             setResult(data);    
             console.log(result)

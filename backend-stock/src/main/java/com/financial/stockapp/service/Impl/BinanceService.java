@@ -9,6 +9,7 @@ import com.financial.stockapp.exception.UserNotFoundException;
 import com.financial.stockapp.repository.IBinanceAccountRepository;
 import com.financial.stockapp.repository.IUserRepository;
 import com.financial.stockapp.util.BinanceSignatureUtils;
+import com.financial.stockapp.util.BinanceTimestampUtils;
 import com.financial.stockapp.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,14 +32,9 @@ public class BinanceService {
     private final IBinanceAccountRepository accountRepository;
     private final AesEncryptionService encryptionService;
     private final IUserRepository userRepository;
-    private final WebClient webClient = WebClient.builder()
-            .baseUrl("https://demo-fapi.binance.com")
-            .exchangeStrategies(ExchangeStrategies.builder()
-                    .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(16 * 1024 * 1024))
-                    .build())
-            .build();
+    private final WebClient webClient;
     private final BinanceSignatureUtils signatureUtils;
-
+    private final BinanceTimestampUtils timestampUtils;
     // BinanceService.java — thêm method này nếu chưa có
     public List<List<Object>> getKlinesForPrediction(String symbol,String interval ) {
         String url = "https://api.binance.com/api/v3/klines"
@@ -80,8 +76,8 @@ public class BinanceService {
         String apiKey = encryptionService.decrypt(encryptedApiKey);
         String secretKey = encryptionService.decrypt(encryptedSecretKey);
 
-        long timestamp = System.currentTimeMillis();
-        long recvWindow = 60000L; // Nới lỏng lên 60 giây
+        long timestamp = timestampUtils.getBinanceServerTime();
+        long recvWindow = 10000L; // Nới lỏng lên 60 giây
 
         // 3. Tạo query string - PHẢI nối thêm recvWindow vào chuỗi để ký
         String queryString = "recvWindow=" + recvWindow + "&timestamp=" + timestamp;
@@ -137,6 +133,9 @@ public class BinanceService {
         GetKeyProjection ba = accountRepository.findBinanceAccountByIdNative(id);
         return ba;
     }
+
+
+
 
 
 }

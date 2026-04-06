@@ -81,3 +81,20 @@ ai:
 app:
   crypto:
     aes-key: NJxOEWPWlsYbXsDuFfxtCSwzKZkjGL1G
+
+logging:
+  level:
+    org:
+      hibernate:
+        # Log câu lệnh SQL (Bạn đã thấy rồi)
+        SQL: DEBUG
+        # HIỆN GIÁ TRỊ TRUYỀN VÀO DẤU ? (Để biết đang tìm User nào)
+        orm:
+          results: TRACE
+        # HIỆN CHI TIẾT THAM SỐ (Binding parameters)
+        type:
+          descriptor:
+            sql:
+              BasicBinder: TRACE
+    # Log cho Spring Scheduling (Nếu nghi ngờ do Task ngầm)
+    org.springframework.scheduling: DEBUG

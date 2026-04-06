@@ -91,4 +91,15 @@ public class GlobalExceptionHandler {
                 .build();
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @ExceptionHandler(BinanceApiException.class)
+    public ResponseEntity<Map<String, Object>> handleBinanceApiException(BinanceApiException ex) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("success", false);
+        errorResponse.put("binanceCode", ex.getCode());
+        errorResponse.put("message", ex.getMsg()); // "Limit price can't be lower than 66131.64."
+
+        // Trả về mã 400 cho Frontend dễ xử lý
+        return ResponseEntity.badRequest().body(errorResponse);
+    }
 }
