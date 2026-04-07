@@ -95,7 +95,7 @@ export const LimitOrder = ({ symbol }: { symbol: string }) => {
 
   const fetchNewOrder = async (payload: LimitOrderRequest) => {
     try {
-      const response = await orderService.createOrder(payload);
+      const response = await orderService.createLimitOrder(payload);
       const data = await response.data;
       console.log("ORDER RESPONSE:", data);
     } catch (error: any) {

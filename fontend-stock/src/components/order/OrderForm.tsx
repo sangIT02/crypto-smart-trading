@@ -22,7 +22,7 @@ export const OrderForm = ({ symbol, currentPrice, onSubmit }: OrderFormProps) =>
         {
             key: "market",
             label: "Thị trường",
-            children: <MarketOrder symbol={symbol} />,
+            children: <MarketOrder symbol={symbol} marketPrice={currentPrice} />,
         },
     ];
     return (

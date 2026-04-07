@@ -61,13 +61,17 @@ export const orderService = {
     );
   },
 
-  createOrder(body: LimitOrderRequest) {
+  createLimitOrder(body: LimitOrderRequest) {
     const accessToken = getAccessToken();
     return axios.post(`${base_url}/limit`, body, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  },
+
+  createMarketOrder(body: MarketOrderRequest) {
+    const accessToken = getAccessToken();
+    return axios.post(`${base_url}/market`, body, {
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
   },
 };

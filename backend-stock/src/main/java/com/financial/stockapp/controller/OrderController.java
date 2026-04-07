@@ -59,4 +59,5 @@ public class OrderController {
         CancelBinanceOrderResponse response = orderService.cancelOrder(symbol, id);
         return  ResponseEntity.ok(response);
     }
+
 }

@@ -1,56 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { positionService, type PositionDTO } from '../../services/positionService';
+import { toast } from 'react-toastify';
 
-interface PositionData {
-  id: string;
-  symbol: string;
-  leverage: number;
-  side: 'LONG' | 'SHORT';
-  size: number;
-  entryPrice: number;
-  breakEvenPrice: number;
-  markPrice: number;
-  liqPrice: number;
-  marginRatio: number;
-  margin: number;
-  pnl: number;
-  roe: number;
-  estFunding: number;
-}
 
-const demoData: PositionData[] = [
-  {
-    id: '1',
-    symbol: 'BTCUSDT',
-    leverage: 50,
-    side: 'LONG',
-    size: 0.125,
-    entryPrice: 66240.5,
-    breakEvenPrice: 66260.0,
-    markPrice: 67100.2,
-    liqPrice: 64100.0,
-    marginRatio: 4.5,
-    margin: 165.5,
-    pnl: 107.46,
-    roe: 64.93,
-    estFunding: -0.15,
-  },
-  {
-    id: '2',
-    symbol: 'ETHUSDT',
-    leverage: 20,
-    side: 'SHORT',
-    size: 2.45,
-    entryPrice: 3520.1,
-    breakEvenPrice: 3515.0,
-    markPrice: 3480.5,
-    liqPrice: 3800.0,
-    marginRatio: 8.2,
-    margin: 430.2,
-    pnl: 97.02,
-    roe: 27.56,
-    estFunding: 0.05,
-  },
-];
+
+
 
 const formatNumber = (value: number, digits = 2) =>
   value.toLocaleString('en-US', {
@@ -60,12 +14,51 @@ const formatNumber = (value: number, digits = 2) =>
 
 export const OpenPosition: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedPos, setSelectedPos] = useState<PositionData | null>(null);
+  const [positionList, setPositionList] = useState<PositionDTO[]>([]);
+  const fetchPositions = async () => {
+    try {
+      const response = await positionService.getPositions();
+      const data:PositionDTO[] = await response.data;
+      setPositionList(data);
+    } catch (error) {
+      console.error('Error fetching positions:', error);
+    }
+  }
+  const handleClosePosition = async (symbol: string, positionAmt: string) => {
+  try {
+    const amount = parseFloat(positionAmt);
+    // 1. Chặn ngay từ đầu nếu không có vị thế
+    if (amount === 0) {
+      console.warn('Không có vị thế đang mở để đóng!');
+      return;
+    }
+    // 2. Xác định Side đóng chuẩn xác bất chấp One-way hay Hedge mode
+    // - Khối lượng dương (> 0) là đang Long -> Đóng bằng lệnh SELL
+    // - Khối lượng âm (< 0) là đang Short -> Đóng bằng lệnh BUY
+    const side = amount > 0 ? 'SELL' : 'BUY';
 
-  const openTpSlModal = (pos: PositionData) => {
-    setSelectedPos(pos);
-    setIsModalOpen(true);
-  };
+    // 3. Lấy giá trị tuyệt đối của khối lượng (Xóa dấu trừ nếu là lệnh Short)
+    const quantityToSend = Math.abs(amount).toString();
+
+    // 4. Gửi request gọi API
+    const response = await positionService.closePosition({ 
+      symbol, 
+      side, 
+      type: 'MARKET', 
+      quantity: quantityToSend 
+    });
+    toast.success('Đã gửi lệnh thành công!');
+    console.log('Close position response:', response.data);
+    
+    // Ở đây bạn có thể trigger thêm việc refresh lại UI để số dư cập nhật
+  } catch (error) {
+    console.error('Error closing position:', error);
+  }
+};
+
+  useEffect(() => {
+    fetchPositions();
+  }, []);
 
   return (
     <div className="position-page bg-black text-light min-vh-60">
@@ -83,71 +76,70 @@ export const OpenPosition: React.FC = () => {
                 <th className="text-start">Tỉ lệ Margin</th>
                 <th className="text-start">Margin</th>
                 <th className="text-start">PNL (ROI %)</th>
-                <th className="text-start">Phí funding ước tính</th>
                 <th className="sticky-col-right text-center">Thao tác</th>
               </tr>
             </thead>
 
             <tbody>
-              {demoData.map((pos) => {
-                const isWin = pos.pnl >= 0;
+              {positionList.map((pos) => {
+                const isWin = Number(pos.unRealizedProfit) >= 0;
 
                 return (
-                  <tr key={pos.id}>
+                  <tr key={pos.symbol}>
                     <td className="sticky-col-left text-start symbol-cell">
                       <div className="symbol-name">{pos.symbol}</div>
                       <div className="mt-1">
                         <span
                           className={`side-badge ${
-                            pos.side === 'LONG' ? 'side-long' : 'side-short'
+                            Number(pos.positionAmt) > 0 ? 'side-long' : 'side-short'
                           }`}
                         >
-                          {pos.side} {pos.leverage}x
+                          {Number(pos.positionAmt) > 0 ? 'LONG' : 'SHORT'} {10}x
                         </span>
                       </div>
                     </td>
 
-                    <td className="text-start">{formatNumber(pos.size, 3)}</td>
-                    <td className="text-start">{formatNumber(pos.entryPrice, 2)}</td>
-                    <td className="text-start">{formatNumber(pos.breakEvenPrice, 2)}</td>
-                    <td className="text-start">{formatNumber(pos.markPrice, 2)}</td>
+                    <td className="text-start">{formatNumber(Number(pos.positionAmt), 3)}</td>
+                    <td className="text-start">{formatNumber(Number(pos.entryPrice), 2)}</td>
+                    <td className="text-start">{formatNumber(Number(pos.breakEvenPrice), 2)}</td>
+                    <td className="text-start">{formatNumber(Number(pos.markPrice), 2)}</td>
                     <td className="text-start text-warning">
-                      {formatNumber(pos.liqPrice, 2)}
+                      {formatNumber(Number(pos.liquidationPrice), 2)}
                     </td>
-                    <td className="text-start">{formatNumber(pos.marginRatio, 2)}%</td>
-                    <td className="text-start">{formatNumber(pos.margin, 2)} USDT</td>
+                    <td className="text-start">{formatNumber((Number(pos.positionInitialMargin) / Number(pos.positionAmt)) * 100, 2)}%</td>
+                    <td className="text-start">{formatNumber(Number(pos.positionInitialMargin), 2)} USDT</td>
 
                     <td className="text-start">
                       <div className={isWin ? 'pnl-positive' : 'pnl-negative'}>
                         <div className="fw-semibold">
                           {isWin ? '+' : ''}
-                          {formatNumber(pos.pnl, 2)} USDT
+                          {formatNumber(Number(pos.unRealizedProfit), 2)} USDT
                         </div>
                         <div className="small">
                           ({isWin ? '+' : ''}
-                          {formatNumber(pos.roe, 2)}%)
+                          {formatNumber((Number(pos.unRealizedProfit) / Number(pos.initialMargin)) * 100, 2)}%)
                         </div>
                       </div>
                     </td>
 
-                    <td className="text-start funding-text">
+                    {/* <td className="text-start funding-text">
                       {pos.estFunding > 0 ? '+' : ''}
-                      {formatNumber(pos.estFunding, 2)} USDT
-                    </td>
+                      {formatNumber(Number(pos.estFunding), 2)} USDT
+                    </td> */}
 
                     <td className="sticky-col-right text-center">
                       <div className="d-flex justify-content-center gap-2 flex-nowrap">
                         <button
                           type="button"
                           className="btn btn-binance-action btn-sm text-white"
-                          onClick={() => openTpSlModal(pos)}
                         >
                           TP/SL
                         </button>
                         <button type="button" className="btn btn-binance-action btn-sm btn-warning">
                           Giới hạn
                         </button>
-                        <button type="button" className="btn btn-binance-action btn-sm btn-warning">
+                        <button type="button" className="btn btn-binance-action btn-sm btn-warning"
+                          onClick={() => handleClosePosition(pos.symbol, pos.positionAmt)}>
                           Thị trường
                         </button>
                       </div>
@@ -160,7 +152,7 @@ export const OpenPosition: React.FC = () => {
         </div>
       </div>
 
-      {isModalOpen && selectedPos && (
+      {isModalOpen  && (
         <div
           className="modal fade show d-block"
           tabIndex={-1}
@@ -170,7 +162,7 @@ export const OpenPosition: React.FC = () => {
             <div className="modal-content custom-modal">
               <div className="modal-header border-secondary-subtle">
                 <h5 className="modal-title text-light">
-                  Chốt lời / Dừng lỗ - {selectedPos.symbol}
+                  Chốt lời / Dừng lỗ 
                 </h5>
                 <button
                   type="button"
@@ -184,7 +176,7 @@ export const OpenPosition: React.FC = () => {
                   <div className="d-flex justify-content-between mb-1 small text-secondary">
                     <span>Chốt lời</span>
                     <span className="text-success">
-                      Giá đánh dấu: {formatNumber(selectedPos.markPrice, 2)}
+                      Giá đánh dấu: 
                     </span>
                   </div>
                   <input
@@ -198,7 +190,7 @@ export const OpenPosition: React.FC = () => {
                   <div className="d-flex justify-content-between mb-1 small text-secondary">
                     <span>Dừng lỗ</span>
                     <span className="text-danger">
-                      Giá đánh dấu: {formatNumber(selectedPos.markPrice, 2)}
+                      Giá đánh dấu
                     </span>
                   </div>
                   <input

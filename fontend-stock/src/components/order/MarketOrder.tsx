@@ -11,9 +11,9 @@ import { TPSL } from "./TPSL";
 
 type MarginMode = "Cross" | "Isolated";
 
-export const MarketOrder = ({ symbol }: { symbol: string }) => {
+export const MarketOrder = ({ symbol, marketPrice }: { symbol: string; marketPrice: number | null }) => {
   const balance = 5000;
-  const bestBidOfferPrice = 66000; // dùng làm giá tham chiếu để tính quantity / liquidation
+  const bestBidOfferPrice = marketPrice || 1 ;
 
   const [showSltp, setShowSltp] = useState(false);
   const [leverage, setLeverage] = useState(1);
@@ -40,8 +40,13 @@ export const MarketOrder = ({ symbol }: { symbol: string }) => {
 
   // Với market order, dùng giá thị trường hiện tại / giá tham chiếu để ước tính quantity
   const quantity = useMemo(() => {
-    if (!bestBidOfferPrice || bestBidOfferPrice <= 0) return 0;
-    return notional / bestBidOfferPrice;
+    const rawQuantity = notional / bestBidOfferPrice;
+  
+  // 2. Kỹ thuật cắt cụt phần thập phân thừa (Làm tròn XUỐNG)
+  const factor = Math.pow(10, 3);
+  const safeQuantity = Math.floor(rawQuantity * factor) / factor;
+  
+  return safeQuantity;
   }, [notional, bestBidOfferPrice]);
 
   const estimatedCost = useMemo(() => {
@@ -55,9 +60,9 @@ export const MarketOrder = ({ symbol }: { symbol: string }) => {
     setPercent(clampPct(Number(e.target.value) || 0));
   };
 
-  const fetchNewOrder = async (payload: LimitOrderRequest) => {
+  const fetchNewOrder = async (payload: MarketOrderRequest) => {
     try {
-      const response = await orderService.createOrder(payload);
+      const response = await orderService.createMarketOrder(payload);
       const data = await response.data;
       console.log("ORDER RESPONSE:", data);
       toast.success("Đặt lệnh market thành công!");
@@ -85,9 +90,8 @@ export const MarketOrder = ({ symbol }: { symbol: string }) => {
       toast.error("Số lượng không hợp lệ!");
       return;
     }
-
     const payload = buildOrderPayload(side);
-    // fetchNewOrder(payload);
+    fetchNewOrder(payload);
   };
 
   const fetchLeverageMargin = async () => {
@@ -217,34 +221,6 @@ export const MarketOrder = ({ symbol }: { symbol: string }) => {
               {leverage}x
             </button>
           </div>
-
-          {/* Market price reference */}
-          <div>
-            <label
-              style={{
-                display: "block",
-                marginBottom: "5px",
-                fontSize: "0.9em",
-                color: "gray",
-              }}
-            >
-              Giá thị trường
-            </label>
-            <div
-              className="rounded-2 d-flex justify-content-between order-box"
-              style={{
-                padding: "8px",
-                background: "#000",
-                border: "2px solid #2E2E2E",
-              }}
-            >
-              <span className="fw-bold text-white">
-                {bestBidOfferPrice.toLocaleString()}
-              </span>
-              <span style={{ color: "white" }}>USDT</span>
-            </div>
-          </div>
-
           <div>
             <label
               style={{

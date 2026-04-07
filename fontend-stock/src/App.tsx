@@ -18,16 +18,6 @@ import PriceAlertsPage from './pages/alert.page';
 import { AppLayout } from './layout/MainLayout';
 
 function App() {
-  const apiUrl = import.meta.env.VITE_API_URL;
-  console.log(apiUrl); // https://api.dnse.com.vn
-  const connect    = useSocketStore(s => s.connect);
-  const disconnect = useSocketStore(s => s.disconnect);
-
-  useEffect(() => {
-      connect();
-      return () => disconnect();
-  }, []);
-
   
   return (
     <BrowserRouter>

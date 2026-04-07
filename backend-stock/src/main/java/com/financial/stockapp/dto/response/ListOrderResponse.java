@@ -1,7 +1,9 @@
 package com.financial.stockapp.dto.response;
 
-import java.math.BigDecimal;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.math.BigDecimal;
+@JsonIgnoreProperties(ignoreUnknown = true) // <--- Bùa hộ mệnh
 public record ListOrderResponse(
         Long orderId,
         String symbol,
