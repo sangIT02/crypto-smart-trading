@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { portfolioService, type FuturesBalanceResponse } from '../services/portfolioService';
+import { portfolioService, type FuturesBalanceResponse } from '../../services/portfolioService';
 import axios from 'axios';
 
 type PositionSide = 'LONG' | 'SHORT';

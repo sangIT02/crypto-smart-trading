@@ -41,7 +41,7 @@ export const OtpModal = ({ email, pass, show, onClose }: OtpModalProps) => {
     };
     // Logic đếm ngược
     useEffect(() => {
-        let timer: NodeJS.Timeout;
+        let timer: ReturnType<typeof setTimeout> | undefined;;
         if (show && countdown > 0) {
             timer = setInterval(() => {
                 setCountdown((prev) => prev - 1);

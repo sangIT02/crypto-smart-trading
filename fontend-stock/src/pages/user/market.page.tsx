@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Tabs } from 'antd';
-import coinDataService from '../services/coinDataService';
-import MarketTable from '../components/MarketTable';
+import coinDataService from '../../services/coinDataService';
+import MarketTable from '../../components/MarketTable';
 
 type CoinProp = {
     id: string;

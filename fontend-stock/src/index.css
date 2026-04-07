@@ -366,3 +366,14 @@ position style
   z-index: 5;
   background: #000 !important;
 }
+.login-history-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.login-history-card:hover {
+  border-color: #F0B90B !important;  
+  background-color: #1e2026 !important; 
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}

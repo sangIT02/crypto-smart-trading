@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import logo from "../../../assets/user/233242295.png";
-import { userService } from "../../../services";
-import { OtpModal } from "../../../components/OtpModal";
-import { LoginFormModal } from "../../../components/LoginFormModal";
+import { useState } from "react";
+import logo from "../../assets/user/233242295.png";
+import { userService } from "../../services";
+import { OtpModal } from "../../components/OtpModal";
+import { LoginFormModal } from "../../components/LoginFormModal";
 /* ================= REGEX ================= */
 
 

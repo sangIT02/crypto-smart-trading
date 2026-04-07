@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
-import { AppLayout } from '../layout/MainLayout';
+import React, { use, useEffect, useMemo, useState } from 'react';
+import { AppLayout } from '../../layout/MainLayout';
+import { userService } from '../../services';
 
 type UserProfile = {
   id: number;
@@ -25,13 +26,7 @@ type LoginHistoryItem = {
   createdAt: string;
 };
 
-type ConnectedAccount = {
-  apiConnected: boolean;
-  oauthConnected: boolean;
-  provider: 'GOOGLE' | null;
-  apiCreatedAt: string | null;
-  oauthExpiredAt: string | null;
-};
+
 
 const MOCK_USER: UserProfile = {
   id: 12,
@@ -48,48 +43,8 @@ const MOCK_USER: UserProfile = {
   updatedAt: '31/03/2026 09:05',
 };
 
-const MOCK_CONNECTED: ConnectedAccount = {
-  apiConnected: true,
-  oauthConnected: true,
-  provider: 'GOOGLE',
-  apiCreatedAt: '24/03/2026 14:12',
-  oauthExpiredAt: '05/04/2026 23:59',
-};
 
-const MOCK_LOGIN_HISTORY: LoginHistoryItem[] = [
-  {
-    id: 1,
-    ipAddress: '171.244.12.98',
-    device: 'Chrome / Windows 11',
-    location: 'Ho Chi Minh City, Vietnam',
-    status: 'SUCCESS',
-    createdAt: '31/03/2026 09:01',
-  },
-  {
-    id: 2,
-    ipAddress: '171.244.12.98',
-    device: 'Chrome / Windows 11',
-    location: 'Ho Chi Minh City, Vietnam',
-    status: 'SUCCESS',
-    createdAt: '30/03/2026 22:14',
-  },
-  {
-    id: 3,
-    ipAddress: '103.21.148.42',
-    device: 'Safari / iPhone',
-    location: 'Ho Chi Minh City, Vietnam',
-    status: 'FAILED',
-    createdAt: '29/03/2026 18:43',
-  },
-  {
-    id: 4,
-    ipAddress: '171.244.12.98',
-    device: 'Chrome / Windows 11',
-    location: 'Ho Chi Minh City, Vietnam',
-    status: 'SUCCESS',
-    createdAt: '28/03/2026 08:17',
-  },
-];
+
 
 function StatCard({ title, value, hint, accent }: { title: string; value: string; hint: string; accent?: string }) {
   return (
@@ -182,7 +137,7 @@ function StatusPill({ active }: { active: boolean }) {
 function LoginHistoryCard({ item }: { item: LoginHistoryItem }) {
   const success = item.status === 'SUCCESS';
   return (
-    <div style={{ background: '#070707', border: '1px solid #171717', borderRadius: 14, padding: 14 }}>
+    <div style={{ background: '#070707', border: '2px solid #2e2e2e', borderRadius: 14, padding: 14 }} className='login-history-card'>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 10 }}>
         <div style={{ fontSize: 12, color: '#f3f4f6', fontWeight: 600 }}>{item.device}</div>
         <span
@@ -207,7 +162,7 @@ function LoginHistoryCard({ item }: { item: LoginHistoryItem }) {
         </div>
         <div style={rowStyle}>
           <span style={labelStyle}>Location</span>
-          <span style={valueStyle}>{item.location}</span>
+          <span style={valueStyle}>{item.location || "Ha Noi Viet Nam"}</span>
         </div>
         <div style={rowStyle}>
           <span style={labelStyle}>Time</span>
@@ -220,19 +175,19 @@ function LoginHistoryCard({ item }: { item: LoginHistoryItem }) {
 
 function ProfilePage() {
   const [user] = useState<UserProfile>(MOCK_USER);
-  const [loginHistory] = useState<LoginHistoryItem[]>(MOCK_LOGIN_HISTORY);
-  const [connected] = useState<ConnectedAccount>(MOCK_CONNECTED);
-
-  const stats = useMemo(() => {
-    const successCount = loginHistory.filter((item) => item.status === 'SUCCESS').length;
-    const failedCount = loginHistory.filter((item) => item.status === 'FAILED').length;
-    return {
-      successCount,
-      failedCount,
-      activeSessions: 2,
-      securityScore: connected.apiConnected && user.emailVerified ? 92 : 68,
-    };
-  }, [connected.apiConnected, loginHistory, user.emailVerified]);
+  const [loginHistory,setLoginHistory] = useState<LoginHistoryItem[]>([]);
+  const fetchLoginHistory = async () => {
+    try {
+      const response = await userService.getLoginHistory();
+      const listLoginHistory: LoginHistoryItem[] = response.data.data;
+      setLoginHistory(listLoginHistory);
+    } catch (error) {
+      console.error('Failed to fetch login history:', error);
+    }
+  }
+  useEffect(() => {
+    fetchLoginHistory();
+  }, [])
 
   return (
       <div
@@ -334,8 +289,8 @@ function ProfilePage() {
             marginBottom: 16,
           }}
         >
-          <SectionTitle icon={<HistoryIcon />} title="Lịch sử đăng nhập" action={<span style={{ fontSize: 11, color: '#71717a' }}>{loginHistory.length} records</span>} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
+          <SectionTitle icon={<HistoryIcon />} title="Lịch sử đăng nhập" action={<span style={{ fontSize: 11, color: '#71717a' }}> records</span>} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
             {loginHistory.map((item) => (
               <LoginHistoryCard key={item.id} item={item} />
             ))}

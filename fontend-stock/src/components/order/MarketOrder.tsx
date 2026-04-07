@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { Slider } from "antd";
 import { toast } from "react-toastify";
 import {
@@ -8,18 +8,23 @@ import {
   type MarketOrderRequest,
 } from "../../services/orderService";
 import { TPSL } from "./TPSL";
+import type { MarginMode } from "./OrderForm";
+type MarketOrderProps = {
+    symbol: string;
+    leverage: number;
+    setLeverage: Dispatch<SetStateAction<number>>;
+    marginMode: MarginMode;
+    setMarginMode: Dispatch<SetStateAction<MarginMode>>;
+    marketPrice: number | null;
+}
 
-type MarginMode = "Cross" | "Isolated";
-
-export const MarketOrder = ({ symbol, marketPrice }: { symbol: string; marketPrice: number | null }) => {
+export const MarketOrder = ({ symbol, leverage, setLeverage, marginMode, setMarginMode, marketPrice }: MarketOrderProps & { marketPrice: number | null }) => {
   const balance = 5000;
   const bestBidOfferPrice = marketPrice || 1 ;
 
   const [showSltp, setShowSltp] = useState(false);
-  const [leverage, setLeverage] = useState(1);
   const [percent, setPercent] = useState(0);
 
-  const [marginMode, setMarginMode] = useState<MarginMode>("Cross");
   const [showMarginModal, setShowMarginModal] = useState(false);
   const [showLeverageModal, setShowLeverageModal] = useState(false);
   const [tempMarginMode, setTempMarginMode] = useState<MarginMode>("Cross");
@@ -198,6 +203,7 @@ export const MarketOrder = ({ symbol, marketPrice }: { symbol: string; marketPri
             <span>{balance.toLocaleString()} USDT</span>
           </div>
 
+          {/* Cross + Leverage */}
           <div style={{ display: "flex", gap: "10px" }}>
             <button
               type="button"
@@ -401,6 +407,7 @@ export const MarketOrder = ({ symbol, marketPrice }: { symbol: string; marketPri
         </div>
       </div>
 
+      {/* Margin Modal */}
       {showMarginModal && (
         <div style={overlayStyle} onClick={() => setShowMarginModal(false)}>
           <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
@@ -429,6 +436,30 @@ export const MarketOrder = ({ symbol, marketPrice }: { symbol: string; marketPri
               >
                 ×
               </button>
+            </div>
+
+            <div
+              style={{
+                marginBottom: "20px",
+                fontSize: "15px",
+                fontWeight: 700,
+              }}
+            >
+              {symbol}
+              <span
+                style={{
+                  marginLeft: "8px",
+                  fontSize: "12px",
+                  color: "#B7BDC6",
+                  background: "#2B3139",
+                  padding: "3px 8px",
+                  borderRadius: "6px",
+                  display: "inline-block",
+                  verticalAlign: "middle",
+                }}
+              >
+                Vĩnh cửu
+              </span>
             </div>
 
             <div style={{ display: "flex", gap: "16px", marginBottom: "18px" }}>
@@ -473,6 +504,45 @@ export const MarketOrder = ({ symbol, marketPrice }: { symbol: string; marketPri
               </button>
             </div>
 
+            <div
+              style={{
+                color: "#8B93A6",
+                fontSize: "14px",
+                lineHeight: 1.8,
+                marginBottom: "26px",
+              }}
+            >
+              <div>
+                • Chuyển chế độ margin chỉ áp dụng cho những hợp đồng được chọn.
+              </div>
+              <div style={{ marginTop: "8px" }}>
+                • Chế độ Cross Margin: Tất cả vị thế cross margin sử dụng cùng
+                tài sản ký quỹ sẽ cùng chia sẻ số dư tài sản cross margin. Trong
+                thời gian thanh lý, số dư tài sản ký quỹ của bạn cùng với tất cả
+                vị thế đang mở có thể sẽ bị tịch thu.
+              </div>
+              <div style={{ marginTop: "8px" }}>
+                Chế độ Isolated Margin: Lượng margin của vị thế được giới hạn
+                trong một khoảng nhất định. Nếu giảm xuống thấp hơn mức Margin
+                Duy trì, vị thế sẽ bị thanh lý. Tuy nhiên, chế độ này cho phép
+                bạn thêm hoặc gỡ margin tùy ý muốn.
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "22px",
+                color: "#EAECEF",
+                fontWeight: 600,
+              }}
+            >
+              <span>Chế độ ký quỹ và đòn bẩy mặc định</span>
+              <span style={{ color: "#8B93A6" }}>Off &nbsp;›</span>
+            </div>
+
             <button
               type="button"
               onClick={ChangeMargin}
@@ -494,6 +564,7 @@ export const MarketOrder = ({ symbol, marketPrice }: { symbol: string; marketPri
         </div>
       )}
 
+      {/* Leverage Modal */}
       {showLeverageModal && (
         <div style={overlayStyle} onClick={() => setShowLeverageModal(false)}>
           <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
@@ -522,6 +593,16 @@ export const MarketOrder = ({ symbol, marketPrice }: { symbol: string; marketPri
               >
                 ×
               </button>
+            </div>
+
+            <div
+              style={{
+                marginBottom: "10px",
+                fontSize: "15px",
+                fontWeight: 700,
+              }}
+            >
+              Đòn bẩy
             </div>
 
             <div
@@ -603,9 +684,63 @@ export const MarketOrder = ({ symbol, marketPrice }: { symbol: string; marketPri
               }}
             />
 
+            <div
+              style={{
+                color: "#8B93A6",
+                fontSize: "14px",
+                lineHeight: 1.8,
+                marginTop: "20px",
+                marginBottom: "18px",
+              }}
+            >
+              <div>• Vị thế tối đa 300.000 USDT</div>
+              <div>
+                • Xin lưu ý rằng việc thay đổi đòn bẩy cũng sẽ áp dụng cho các
+                vị thế mở và lệnh đang mở.
+              </div>
+              <div>
+                • Khi chọn đòn bẩy cao hơn, chẳng hạn như [10x], rủi ro thanh lý
+                sẽ tăng lên. Hãy luôn kiểm soát mức độ rủi ro của bạn.
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "16px",
+                fontSize: "14px",
+                fontWeight: 600,
+                marginBottom: "24px",
+                color: "#F0B90B",
+                flexWrap: "wrap",
+              }}
+            >
+              <span style={{ cursor: "pointer" }}>
+                Kiểm tra bảng tỷ lệ Đòn bẩy & số tiền ký quỹ
+              </span>
+              <span style={{ color: "#5B6578" }}>|</span>
+              <span style={{ cursor: "pointer" }}>Tăng hạn mức vị thế</span>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "22px",
+                color: "#EAECEF",
+                fontWeight: 600,
+              }}
+            >
+              <span>Chế độ ký quỹ và đòn bẩy mặc định</span>
+              <span style={{ color: "#8B93A6" }}>Off &nbsp;›</span>
+            </div>
+
             <button
               type="button"
-              onClick={ChangeLeverage}
+              onClick={() => {
+                ChangeLeverage();
+              }}
               style={{
                 width: "100%",
                 height: "56px",

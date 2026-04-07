@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { apiKeyService } from "../services/apiKeyService";
-import { keyAccountService } from "../services/keyAccountService";
+import { apiKeyService } from "../../services/apiKeyService";
+import { keyAccountService } from "../../services/keyAccountService";
 
 type ApiKeyItem = {
     id: string;
@@ -39,13 +39,14 @@ function KeyCard({ keyData }: KeyCardProps) {
         <div
             style={{
                 background: "linear-gradient(180deg, #0b0b0b 0%, #050505 100%)",
-                border: "1px solid #1a1a1a",
+                border: "2px solid #1a1a1a",
                 borderRadius: 16,
                 padding: 18,
                 transition: "all 0.2s ease",
                 boxShadow: "0 0 0 1px rgba(255,255,255,0.015), 0 10px 30px rgba(0,0,0,0.35)",
                 minWidth: 0,
             }}
+            className="login-history-card"
             onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-1px)";
                 e.currentTarget.style.borderColor = "#2a2a2a";
@@ -67,7 +68,7 @@ function KeyCard({ keyData }: KeyCardProps) {
                 <div style={{ minWidth: 0 }}>
                     <div
                         style={{
-                            fontSize: 14,
+                            fontSize: 20,
                             fontWeight: 600,
                             color: "#f5f5f5",
                             fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
@@ -78,7 +79,7 @@ function KeyCard({ keyData }: KeyCardProps) {
 
                     <div
                         style={{
-                            fontSize: 11,
+                            fontSize: 12,
                             color: "#71717a",
                             marginTop: 2,
                         }}
@@ -93,7 +94,7 @@ function KeyCard({ keyData }: KeyCardProps) {
                         alignItems: "center",
                         gap: 5,
                         background: keyData.isActive ? "#07130b" : "#151515",
-                        border: keyData.isActive ? "1px solid #16371f" : "1px solid #262626",
+                        border: keyData.isActive ? "2px solid #16371f" : "2px solid #262626",
                         borderRadius: 999,
                         padding: "4px 10px",
                         whiteSpace: "nowrap",
@@ -125,7 +126,7 @@ function KeyCard({ keyData }: KeyCardProps) {
     <div>
         <div
             style={{
-                fontSize: 10,
+                fontSize: 12,
                 color: "#6b7280",
                 letterSpacing: 1.1,
                 textTransform: "uppercase",
@@ -136,11 +137,11 @@ function KeyCard({ keyData }: KeyCardProps) {
         </div>
         <div
             style={{
-                fontSize: 12,
+                fontSize: 14,
                 color: "#e5e7eb",
                 fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                 background: "#080808",
-                border: "1px solid #1f1f1f",
+                border: "2px solid #2e2e2e",
                 borderRadius: 10,
                 padding: "10px 12px",
                 wordBreak: "break-all",
@@ -153,7 +154,7 @@ function KeyCard({ keyData }: KeyCardProps) {
     <div>
         <div
             style={{
-                fontSize: 10,
+                fontSize: 12,
                 color: "#6b7280",
                 letterSpacing: 1.1,
                 textTransform: "uppercase",
@@ -164,11 +165,11 @@ function KeyCard({ keyData }: KeyCardProps) {
         </div>
         <div
             style={{
-                fontSize: 12,
+                fontSize: 14,
                 color: "#e5e7eb",
                 fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                 background: "#080808",
-                border: "1px solid #1f1f1f",
+                border: "2px solid #2e2e2e",
                 borderRadius: 10,
                 padding: "10px 12px",
                 wordBreak: "break-all",

@@ -4,11 +4,12 @@ import {
     Brain, History,
     BarChart2, ChevronDown
 } from 'lucide-react';
-import { useCoinStore } from '../store/coinStore';
-import { CoinSelector } from '../components/TabBtn';
-import { predictionService } from '../services/predictionService';
 import axios from 'axios';
-import RiskDrawer, { type DataAnalyze } from '../components/RiskDrawer';
+import { useCoinStore } from '../../store/coinStore';
+import type { DataAnalyze } from '../../components/RiskDrawer';
+import { predictionService } from '../../services/predictionService';
+import { CoinSelector } from '../../components/TabBtn';
+import RiskDrawer from '../../components/RiskDrawer';
 
 export type Signal = 'LONG' | 'SHORT' | 'FLAT';
 

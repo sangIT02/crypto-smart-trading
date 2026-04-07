@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import type { PredictionData, Signal } from "../pages/ai-prediction.page";
 import axios from "axios";
 import { getAccessToken } from "../services/auth";
+import type { PredictionData } from "../pages/user/ai-prediction.page";
 type RiskDrawerProps = {
     open: boolean;
     onClose: () => void;

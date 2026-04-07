@@ -10,19 +10,42 @@ type OrderFormProps = {
     balance?: number;         // Sức mua (Optional)
     onSubmit: (type: 'BUY' | 'SELL', quantity: number, price: number) => void; // Hàm callback gửi lên cha
 }
+export type MarginMode = "Cross" | "Isolated";
 
 
 export const OrderForm = ({ symbol, currentPrice, onSubmit }: OrderFormProps) => {
+    const [leverage, setLeverage] = useState<number>(1); // Mặc định 1x
+    const [marginMode, setMarginMode] = useState<MarginMode>('Cross'); // Mặc định Cross
+
     const items = [
         {
             key: "limit",
             label: "Giới hạn",
-            children: <LimitOrder symbol={symbol} />,
+            children: (
+                <LimitOrder 
+                    symbol={symbol} 
+                    // 2. Truyền state và hàm set state xuống LimitOrder
+                    leverage={leverage}
+                    setLeverage={setLeverage}
+                    marginMode={marginMode}
+                    setMarginMode={setMarginMode}
+                />
+            ),
         },
         {
             key: "market",
             label: "Thị trường",
-            children: <MarketOrder symbol={symbol} marketPrice={currentPrice} />,
+            children: (
+                <MarketOrder 
+                    symbol={symbol} 
+                    marketPrice={currentPrice} 
+                    // 3. Truyền state và hàm set state xuống MarketOrder
+                    leverage={leverage}
+                    setLeverage={setLeverage}
+                    marginMode={marginMode}
+                    setMarginMode={setMarginMode}
+                />
+            ),
         },
     ];
     return (

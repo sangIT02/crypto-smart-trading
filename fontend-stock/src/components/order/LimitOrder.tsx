@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { Slider } from "antd";
 import { toast } from "react-toastify"; // Giả sử dùng toastify
 import {
@@ -7,18 +7,24 @@ import {
   type LimitOrderRequest,
 } from "../../services/orderService";
 import { TPSL } from "./TPSL";
-type MarginMode = "Cross" | "Isolated";
+import type { MarginMode } from "./OrderForm";
 
-export const LimitOrder = ({ symbol }: { symbol: string }) => {
+type LimitOrderProps = {
+    symbol: string;
+    leverage: number;
+    setLeverage: Dispatch<SetStateAction<number>>;
+    marginMode: MarginMode;
+    setMarginMode: Dispatch<SetStateAction<MarginMode>>;
+}
+
+export const LimitOrder = ({ symbol, leverage, setLeverage, marginMode, setMarginMode }: LimitOrderProps)=>{
   const balance = 5000;
   const bestBidOfferPrice = 66000;
 
   const [showSltp, setShowSltp] = useState(false);
-  const [leverage, setLeverage] = useState(1);
   const [percent, setPercent] = useState(0);
   const [price, setPrice] = useState(bestBidOfferPrice);
 
-  const [marginMode, setMarginMode] = useState<MarginMode>("Cross");
   const [showMarginModal, setShowMarginModal] = useState(false);
   const [showLeverageModal, setShowLeverageModal] = useState(false);
   const [tempMarginMode, setTempMarginMode] = useState<MarginMode>("Cross");

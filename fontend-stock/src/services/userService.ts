@@ -1,5 +1,6 @@
 // File: src/services/userService.js
 import axios from "axios";
+import { getAccessToken } from "./auth";
 
 
 export interface PageData<T> {
@@ -37,10 +38,16 @@ const userService = {
     verifyOtp: (email: string,password:string, otp: string) => {
         const body = {email,password, otp};
         return axios.post(`${API_URL}/verify-otp`,body);
-    }
+    },
 
-    
-
+    getLoginHistory: () => {
+        const token = getAccessToken();
+        return axios.get(`${API_URL}/login-history`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+    },
 
 };
 

@@ -1,8 +1,8 @@
-import { AppLayout } from '../layout/MainLayout';
-import TradingChart from '../components/chart/trading.chart';
+import { AppLayout } from '../../layout/MainLayout';
+import TradingChart from '../../components/chart/trading.chart';
 import { useEffect, useRef, useState } from 'react';
-import { MOCK_COINS } from '../components/TabBtn';
-import { PositionContainer } from '../components/position/PositionContainer';
+import { MOCK_COINS } from '../../components/TabBtn';
+import { PositionContainer } from '../../components/position/PositionContainer';
 
 export const Trading = () => {
     return (

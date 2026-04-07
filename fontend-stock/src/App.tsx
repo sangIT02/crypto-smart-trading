@@ -2,20 +2,20 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import '../node_modules/bootstrap/dist/css/bootstrap.min.css';
 import '../node_modules/bootstrap-icons/font/bootstrap-icons.css';
 import DashboardPage from './components/dashboard/page';
-import { Market } from './pages/market.page';
-import { Trading } from './pages/trading.page';
-import { GridTrading } from './pages/grid-trading.page';
-import { BotTrade } from './pages/bot-trade.page';
-import { Portfolio } from './pages/portfolio.page';
-import { ChatBot } from './pages/chat.page';
-import { RegisterPage } from './pages/user/register/Register.page';
-import { useSocketStore } from './services/useSocketStore';
-import { useEffect } from 'react';
-import AIPredictionPage from './pages/ai-prediction.page';
-import ProfilePage from './pages/ProfilePage';
-import ApiKeyPage from './pages/api-key.page';
-import PriceAlertsPage from './pages/alert.page';
+import { Market } from './pages/user/market.page';
+import { Trading } from './pages/user/trading.page';
+import { GridTrading } from './pages/user/grid-trading.page';
+import { BotTrade } from './pages/user/bot-trade.page';
+import { Portfolio } from './pages/user/portfolio.page';
+import { ChatBot } from './pages/user/chat.page';
+import { RegisterPage } from './pages/user/Register.page';
+import ProfilePage from './pages/user/ProfilePage';
+import ApiKeyPage from './pages/user/api-key.page';
+import PriceAlertsPage from './pages/user/alert.page';
 import { AppLayout } from './layout/MainLayout';
+import AIPredictionPage from './pages/user/ai-prediction.page';
+import AdminLayout from './layout/admin/AdminLayout';
+import AdminDashboardPage from './pages/admin/AdminDashboard';
 
 function App() {
   
@@ -37,7 +37,9 @@ function App() {
         </Route>
       </Routes>
     <Routes>
-      <Route path="/register" element={<RegisterPage />} />
+      <Route element={<AdminLayout />}>
+            <Route path="/home-admin" element={<AdminDashboardPage />} />
+      </Route>
     </Routes>
     </BrowserRouter>
 
