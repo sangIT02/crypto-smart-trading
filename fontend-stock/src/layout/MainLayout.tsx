@@ -2,9 +2,6 @@ import { Outlet } from 'react-router-dom'
 import { AppHeader } from './app-header'
 import { AppSidebar } from './app-sidebar'
 
-interface AppLayoutProps {
-    children: React.ReactNode
-}
 
 export function AppLayout() {
     return (

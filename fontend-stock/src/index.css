@@ -377,3 +377,19 @@ position style
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
+/*admin page style*/
+.table-dark {
+  --bs-table-bg: transparent !important;
+  --bs-table-striped-bg: transparent !important;
+  --bs-table-hover-bg: rgba(255, 255, 255, 0.02) !important;
+  --bs-table-border-color: #1a1a1a !important;
+  color: #fff !important;
+}
+
+.table > :not(caption) > * > * {
+  border-bottom-color: #1a1a1a !important;
+}
+
+.card {
+  box-shadow: none !important;
+}

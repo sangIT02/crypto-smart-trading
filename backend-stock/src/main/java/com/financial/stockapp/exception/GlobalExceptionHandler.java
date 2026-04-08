@@ -8,6 +8,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
@@ -101,5 +102,16 @@ public class GlobalExceptionHandler {
 
         // Trả về mã 400 cho Frontend dễ xử lý
         return ResponseEntity.badRequest().body(errorResponse);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException ex) {
+        return ResponseEntity
+                .status(ex.getStatusCode()) // Lấy 409 từ Exception
+                .body(ErrorResponse.builder()
+                        .status(ex.getStatusCode().value())
+                        .message(ex.getReason())
+                        .error("Business Logic Error")
+                        .build());
     }
 }

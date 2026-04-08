@@ -1,21 +1,21 @@
 import { Outlet } from "react-router-dom";
-import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
+import { AdminSidebar } from "./AdminSidebar";
 
 export default function AdminLayout() {
   return (
-    <div className="min-h-screen bg-[#05080D] text-white">
-      <div className="flex min-h-screen">
-        <AdminHeader />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <AdminSidebar />
+    <div className="d-flex vh-100 w-100 overflow-hidden">
+      {/* Cột trái: Sidebar cố định */}
+      <AdminSidebar />
 
-          <main className="flex-1 overflow-auto bg-[radial-gradient(circle_at_top,_rgba(240,185,11,0.08),_transparent_24%),linear-gradient(180deg,#0B0E11_0%,#11151C_100%)] p-4 md:p-6">
-            <div className="mx-auto w-full max-w-[1600px]">
-              <Outlet />
-            </div>
-          </main>
-        </div>
+      {/* Cột phải: Header ở trên, Nội dung ở dưới */}
+      <div className="d-flex flex-column flex-grow-1 overflow-hidden">
+        <AdminHeader />
+
+        {/* Vùng nội dung có thể cuộn */}
+        <main className="flex-grow-1 overflow-auto  bg-dark text-white">
+          <Outlet />
+        </main>
       </div>
     </div>
   );

@@ -47,8 +47,8 @@ public class BinanceService {
     }
 
     public ApiKeyResponse  AddKeyAccount(AddKeyAccountRequest request){
-        int userId = SecurityUtils.getCurrentUserId();
-        User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("không thấy user"));
+        long userId = SecurityUtils.getCurrentUserId();
+        User user = userRepository.findById(userId);
 
         String apiKey = encryptionService.encrypt(request.apiKey());
         String secretKey = encryptionService.encrypt(request.secretKey());
