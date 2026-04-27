@@ -1,8 +1,11 @@
 package com.financial.stockapp.service.Impl;
 
+import com.financial.stockapp.dto.response.CoinInfoResponse;
 import com.financial.stockapp.entity.Coin;
 import com.financial.stockapp.repository.ICoinRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -42,5 +45,10 @@ public class CoinService {
 
             }
         }
+    }
+
+    public Slice<CoinInfoResponse> getAllCoins(Pageable pageable){
+        Slice<CoinInfoResponse> coins = coinRepository.getAllCoinInfo(pageable);
+        return coins;
     }
 }

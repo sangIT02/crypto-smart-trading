@@ -52,14 +52,16 @@ spring:
           writetimeout: 5000
   ai:
     openai:
-      api-key: ${GEMINI_KEY}
+      api-key: {GROQ_KEY} #${GEMINI_KEY}
+      base-url: https://api.groq.com/openai #https://generativelanguage.googleapis.com
       chat:
-        base-url: https://generativelanguage.googleapis.com
-        completions-path: /v1beta/openai/chat/completions
+        #completions-path: /v1beta/openai/chat/completions groq không cần
         options:
-          model: gemini-3-flash-preview
-
-
+          model: llama-3.1-8b-instant #gemini-2.5-pro
+          temperature: 0.7
+#gemini-3-flash-preview
+#gemini-2.5-flash-lite
+#gemini-2.5-flash
 server:
   port: 8080
 
@@ -82,19 +84,19 @@ app:
   crypto:
     aes-key: NJxOEWPWlsYbXsDuFfxtCSwzKZkjGL1G
 
-logging:
-  level:
-    org:
-      hibernate:
-        # Log câu lệnh SQL (Bạn đã thấy rồi)
-        SQL: DEBUG
-        # HIỆN GIÁ TRỊ TRUYỀN VÀO DẤU ? (Để biết đang tìm User nào)
-        orm:
-          results: TRACE
-        # HIỆN CHI TIẾT THAM SỐ (Binding parameters)
-        type:
-          descriptor:
-            sql:
-              BasicBinder: TRACE
-    # Log cho Spring Scheduling (Nếu nghi ngờ do Task ngầm)
-    org.springframework.scheduling: DEBUG
+#logging:
+#  level:
+#    org:
+#      hibernate:
+#        # Log câu lệnh SQL (Bạn đã thấy rồi)
+#        SQL: DEBUG
+#        # HIỆN GIÁ TRỊ TRUYỀN VÀO DẤU ? (Để biết đang tìm User nào)
+#        orm:
+#          results: TRACE
+#        # HIỆN CHI TIẾT THAM SỐ (Binding parameters)
+#        type:
+#          descriptor:
+#            sql:
+#              BasicBinder: TRACE
+#    # Log cho Spring Scheduling (Nếu nghi ngờ do Task ngầm)
+#    org.springframework.scheduling: DEBUG

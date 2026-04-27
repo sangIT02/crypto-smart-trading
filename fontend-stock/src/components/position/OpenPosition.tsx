@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { positionService, type PositionDTO } from '../../services/positionService';
 import { toast } from 'react-toastify';
+import { useSocketStore } from '../../services/useSocketStore';
+import { useSocketStorePrice } from '../../store/useSocketStore';
 
 
 
@@ -13,6 +15,7 @@ const formatNumber = (value: number, digits = 2) =>
   });
 
 export const OpenPosition: React.FC = () => {
+  const prices = useSocketStorePrice((state) => state.prices);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [positionList, setPositionList] = useState<PositionDTO[]>([]);
   const fetchPositions = async () => {
@@ -83,7 +86,7 @@ export const OpenPosition: React.FC = () => {
             <tbody>
               {positionList.map((pos) => {
                 const isWin = Number(pos.unRealizedProfit) >= 0;
-
+                const liveMarkPrice = prices[pos.symbol] || pos.markPrice;
                 return (
                   <tr key={pos.symbol}>
                     <td className="sticky-col-left text-start symbol-cell">
@@ -102,7 +105,7 @@ export const OpenPosition: React.FC = () => {
                     <td className="text-start">{formatNumber(Number(pos.positionAmt), 3)}</td>
                     <td className="text-start">{formatNumber(Number(pos.entryPrice), 2)}</td>
                     <td className="text-start">{formatNumber(Number(pos.breakEvenPrice), 2)}</td>
-                    <td className="text-start">{formatNumber(Number(pos.markPrice), 2)}</td>
+                    <td className="text-start">{formatNumber(Number(liveMarkPrice), 2)}</td>
                     <td className="text-start text-warning">
                       {formatNumber(Number(pos.liquidationPrice), 2)}
                     </td>

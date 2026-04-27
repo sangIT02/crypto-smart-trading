@@ -1,5 +1,6 @@
 import axios from "axios";
 import { getAccessToken } from "./auth";
+import { Delete, Pause } from "lucide-react";
 
 export type ConditionType = "PRICE_ABOVE" | "PRICE_BELOW" | "MA_CROSS_UP" | "MA_CROSS_DOWN";
 export type AlertMode = "ONCE" | "RECURRING";
@@ -35,7 +36,23 @@ export const alertPriceService ={
         Authorization: `Bearer ${token}`,
       },
     });
-  }
+  },
+  PauseAlertPrice(id: number) {
+    const token = getAccessToken();
+    return axios.post(`${base_url}/pause-alert/${id}`, null, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+  DeleteAlertPrice(id: number) {
+    const token = getAccessToken();
+    return axios.delete(`${base_url}/remove-alert/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
 }
 
 export interface AlertPriceResponse {

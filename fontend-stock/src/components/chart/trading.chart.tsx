@@ -41,7 +41,7 @@ const parseCandles = (raw: any[][]): CandlestickData[] =>
     }));
 
 const fetchKlines = async (
-    symbol: string, // ← thêm vào
+    symbol: string,
     interval: string,
     endTime?: number,
     startTime?: number
@@ -57,12 +57,12 @@ const fetchKlines = async (
 };
 
 type Props = {
-    symbol: string; // "BTCUSDT", "ETHUSDT"...
+    symbol: string;
 };
 // ================================================================
 // COMPONENT
 // ================================================================
-const TradingChart: React.FC= () => {
+const TradingChart: React.FC = () => {
     const [status, setStatus] = useState('Đang khởi động...');
     const [lastPrice, setLastPrice] = useState<number | null>(null);
     const [timeframe, setTimeframe] = useState('1h');
@@ -73,10 +73,12 @@ const TradingChart: React.FC= () => {
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
     const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-    const candlesRef = useRef<CandlestickData[]>([]);   // Cache toàn bộ nến
+    const candlesRef = useRef<CandlestickData[]>([]);
     const wsRef = useRef<WebSocket | null>(null);
-    const isLoadingRef = useRef(false);                   // Tránh load 2 lần cùng lúc
-    const currentTfRef = useRef(timeframe);               // Ref để dùng trong closure
+    const isLoadingRef = useRef(false);
+    const currentTfRef = useRef(timeframe);
+    const tooltipRef = useRef<HTMLDivElement>(null); // ← THÊM MỚI
+
     const [isOpenSearch, setIsOpenSearch] = useState(false);
     const selectedCoin    = useCoinStore(s => s.selectedCoin);
     const setSelectedCoin = useCoinStore(s => s.setSelectedCoin);
@@ -93,6 +95,7 @@ const TradingChart: React.FC= () => {
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, []);
+
     // ================================
     // 1. TẠO CHART
     // ================================
@@ -131,6 +134,66 @@ const TradingChart: React.FC= () => {
         chartRef.current  = chart;
         seriesRef.current = series;
 
+        // ================================
+        // TOOLTIP - THÊM MỚI
+        // ================================
+        chart.subscribeCrosshairMove((param) => {
+            const tooltip = tooltipRef.current;
+            if (!tooltip) return;
+
+            if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
+                tooltip.style.display = 'none';
+                return;
+            }
+
+            const data = param.seriesData.get(series) as CandlestickData;
+            if (!data) return;
+
+            const { open, high, low, close } = data;
+            const isUp = close >= open;
+            const color = isUp ? '#26a69a' : '#ef5350';
+            const change = ((close - open) / open * 100).toFixed(2);
+            const sign = isUp ? '+' : '';
+
+            const date = new Date((param.time as number) * 1000);
+            const timeStr = date.toLocaleString('vi-VN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+
+            const fmt = (v: number) =>
+                v.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 8,
+                });
+
+            tooltip.innerHTML = `
+                <div style="color:#888;font-size:11px;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid #2a2e39">${timeStr}</div>
+                <div style="display:grid;grid-template-columns:auto auto;gap:4px 20px;font-size:12px">
+                    <span style="color:#888">Mở</span>   <span style="color:${color}">${fmt(open)}</span>
+                    <span style="color:#888">Đóng</span> <span style="color:${color}">${fmt(close)}</span>
+                    <span style="color:#888">Cao</span>  <span style="color:#26a69a">${fmt(high)}</span>
+                    <span style="color:#888">Thấp</span> <span style="color:#ef5350">${fmt(low)}</span>
+                    <span style="color:#888">Thay đổi</span> <span style="color:${color}">${sign}${change}%</span>
+                </div>
+            `;
+
+            tooltip.style.display = 'block';
+
+            const containerWidth = chartContainerRef.current?.clientWidth ?? 0;
+            let left = param.point.x + 16;
+            if (left + 190 > containerWidth) left = param.point.x - 206;
+
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${Math.max(0, param.point.y - 80)}px`;
+        });
+        // ================================
+        // END TOOLTIP
+        // ================================
+
         // Resize
         const resizeObserver = new ResizeObserver(entries => {
             if (!entries.length) return;
@@ -155,7 +218,7 @@ const TradingChart: React.FC= () => {
         candlesRef.current = [];
 
         try {
-            const candles = await fetchKlines(activeSymbol, tf); // ← thêm symbol
+            const candles = await fetchKlines(activeSymbol, tf);
             if (!candles.length) { setStatus('Không có dữ liệu'); return; }
 
             candlesRef.current = candles;
@@ -180,7 +243,7 @@ const TradingChart: React.FC= () => {
     // 3. LOAD THÊM NẾN CŨ (kéo trái)
     // ================================
     const loadMoreHistory = useCallback(async () => {
-        if (isLoadingRef.current) return;           // Đang load rồi → bỏ qua
+        if (isLoadingRef.current) return;
         if (!candlesRef.current.length) return;
         if (!seriesRef.current) return;
 
@@ -188,20 +251,17 @@ const TradingChart: React.FC= () => {
         setStatus('Đang tải thêm nến cũ...');
 
         try {
-            // endTime = openTime của nến cũ nhất hiện tại - 1ms
             const oldestTime = Number(candlesRef.current[0].time) * 1000;
             const endTime    = oldestTime - 1;
 
-            const older = await fetchKlines(activeSymbol,currentTfRef.current, endTime);
+            const older = await fetchKlines(activeSymbol, currentTfRef.current, endTime);
             if (!older.length) {
                 setStatus('✅ Đã tải hết lịch sử');
                 return;
             }
 
-            // Gộp nến cũ vào đầu
             const merged = [...older, ...candlesRef.current];
 
-            // Loại bỏ duplicate theo time
             const seen = new Set<number>();
             const unique = merged.filter(c => {
                 const t = Number(c.time);
@@ -235,11 +295,7 @@ const TradingChart: React.FC= () => {
             const range = chartRef.current.timeScale().getVisibleRange();
             if (!range) return;
 
-            // Lấy thời gian nến cũ nhất đang có
             const oldestTime = Number(candlesRef.current[0].time);
-
-            // Nếu đang xem gần tới nến cũ nhất → load thêm
-            // (khi visible range từ nến đầu tiên còn < 50 nến)
             const threshold = oldestTime + 50 * getIntervalSeconds(currentTfRef.current);
             if (Number(range.from) < threshold) {
                 loadMoreHistory();
@@ -257,7 +313,6 @@ const TradingChart: React.FC= () => {
     // 5. WEBSOCKET — NẾN REALTIME
     // ================================
     const connectWebSocket = useCallback((tf: string) => {
-        // Đóng kết nối cũ
         if (wsRef.current) {
             wsRef.current.close();
             wsRef.current = null;
@@ -272,7 +327,7 @@ const TradingChart: React.FC= () => {
 
         ws.onmessage = (event) => {
             const msg  = JSON.parse(event.data);
-            const k    = msg.k; // kline data
+            const k    = msg.k;
             if (!k || !seriesRef.current) return;
 
             const newCandle: CandlestickData = {
@@ -283,13 +338,9 @@ const TradingChart: React.FC= () => {
                 close: parseFloat(k.c),
             };
 
-            // Update giá hiển thị
             setLastPrice(parseFloat(k.c));
-
-            // Cập nhật nến trên chart (update nến hiện tại hoặc thêm nến mới)
             seriesRef.current.update(newCandle);
 
-            // Nến đóng (k.x = true) → thêm vào cache
             if (k.x) {
                 const last = candlesRef.current[candlesRef.current.length - 1];
                 if (!last || Number(last.time) !== Number(newCandle.time)) {
@@ -318,18 +369,15 @@ const TradingChart: React.FC= () => {
         candlesRef.current = [];
         seriesRef.current?.setData([]);
         setLastPrice(null);
-    
-        // Đóng socket cũ
+
         if (wsRef.current) {
             wsRef.current.close();
             wsRef.current = null;
         }
-    
-        // Load data mới + mở socket mới
+
         loadInitialData(timeframe);
         connectWebSocket(timeframe);
 
-        // Cleanup khi đổi timeframe hoặc unmount
         return () => {
             if (wsRef.current) {
                 wsRef.current.close();
@@ -382,7 +430,6 @@ const TradingChart: React.FC= () => {
                                     width={20} height={20}
                                     style={{ borderRadius: '50%' }}
                                 />
-                                {/* ✅ Bỏ USDT */}
                                 <span style={{ fontWeight: 700, fontSize: 16, color: '#fff' }}>
                                     {selectedCoin.symbol}
                                     <span style={{ color: '#5c6478', fontWeight: 400 }}>/USDT</span>
@@ -396,7 +443,6 @@ const TradingChart: React.FC= () => {
                                 }}>▼</span>
                             </div>
 
-                            {/* ✅ Giá đúng precision */}
                             {lastPrice && (
                                 <span style={{ color: '#26a69a', fontWeight: 600, fontSize: 15 }}>
                                     {lastPrice.toFixed(calcPrecision(lastPrice).precision)}
@@ -408,7 +454,7 @@ const TradingChart: React.FC= () => {
                             </span>
                         </div>
 
-                        {/* Dropdown — nằm ngoài header div */}
+                        {/* Dropdown */}
                         {isOpenSearch && (
                             <div style={{
                                 position: 'absolute',
@@ -428,7 +474,6 @@ const TradingChart: React.FC= () => {
                         )}
                     </div>
 
-
                     {/* TIMEFRAME BUTTONS */}
                     <div style={{
                         display: 'flex',
@@ -439,7 +484,6 @@ const TradingChart: React.FC= () => {
                         borderRadius: '6px',
                         flexWrap: 'wrap',
                         border: "1px solid #2E2E2E",
-
                     }}>
                         {timeframes.map(tf => (
                             <button
@@ -462,16 +506,34 @@ const TradingChart: React.FC= () => {
                         ))}
                     </div>
 
-                    {/* CHART */}
-                    <div
-                        ref={chartContainerRef}
-                        style={{
-                            flex: 1,
-                            width: '100%',
-                            borderRadius: '6px',
-                            overflow: 'hidden',
-                        }}
-                    />
+                    {/* CHART ← THÊM MỚI: bọc position relative + tooltip div */}
+                    <div style={{ position: 'relative', flex: 1 }}>
+                        <div
+                            ref={chartContainerRef}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                borderRadius: '6px',
+                                overflow: 'hidden',
+                            }}
+                        />
+                        <div
+                            ref={tooltipRef}
+                            style={{
+                                display: 'none',
+                                position: 'absolute',
+                                pointerEvents: 'none',
+                                zIndex: 10,
+                                background: '#0d0f1a',
+                                border: '1px solid #2a2e39',
+                                borderRadius: 8,
+                                padding: '8px 12px',
+                                color: '#d1d4dc',
+                                minWidth: '175px',
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
+                            }}
+                        />
+                    </div>
                 </div>
 
                 {/* ORDER FORM */}
@@ -489,7 +551,7 @@ const TradingChart: React.FC= () => {
 export default TradingChart;
 
 // ================================================================
-// HELPER — Tính số giây của mỗi interval (dùng để tính threshold)
+// HELPER — Tính số giây của mỗi interval
 // ================================================================
 function getIntervalSeconds(interval: string): number {
     const map: Record<string, number> = {

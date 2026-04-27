@@ -4,6 +4,7 @@ import com.financial.stockapp.dto.ApiResponse;
 import com.financial.stockapp.dto.request.RegisterRequestDTO;
 import com.financial.stockapp.dto.request.UserLoginRequest;
 import com.financial.stockapp.dto.request.VerifyOtpDto;
+import com.financial.stockapp.dto.response.CountUserResponse;
 import com.financial.stockapp.dto.response.LoginHistoryProjection;
 import com.financial.stockapp.dto.response.LoginResponse;
 import com.financial.stockapp.entity.UserLoginHistory;
@@ -74,4 +75,5 @@ public class UserController {
         List<LoginHistoryProjection> res = userService.getLoginHistoryByUserId();
         return ApiResponse.success(res);
     }
+
 }

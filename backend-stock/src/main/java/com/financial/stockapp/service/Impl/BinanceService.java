@@ -2,6 +2,7 @@ package com.financial.stockapp.service.Impl;
 
 
 import com.financial.stockapp.dto.request.AddKeyAccountRequest;
+import com.financial.stockapp.dto.request.GetAPIKeyDTO;
 import com.financial.stockapp.dto.response.*;
 import com.financial.stockapp.entity.BinanceAccount;
 import com.financial.stockapp.entity.User;
@@ -35,7 +36,9 @@ public class BinanceService {
     private final WebClient webClient;
     private final BinanceSignatureUtils signatureUtils;
     private final BinanceTimestampUtils timestampUtils;
+
     // BinanceService.java — thêm method này nếu chưa có
+
     public List<List<Object>> getKlinesForPrediction(String symbol,String interval ) {
         String url = "https://api.binance.com/api/v3/klines"
                 + "?symbol=" + symbol
@@ -72,9 +75,11 @@ public class BinanceService {
         return response;
     }
 
-    public BinanceAccountResponse getAccountBalance(String encryptedApiKey, String encryptedSecretKey) {
-        String apiKey = encryptionService.decrypt(encryptedApiKey);
-        String secretKey = encryptionService.decrypt(encryptedSecretKey);
+    public BinanceAccountResponse getAccountBalance() {
+        int userId = SecurityUtils.getCurrentUserId();
+        GetAPIKeyDTO keyAccount = accountRepository.getByUserId(userId);
+        String apiKey = encryptionService.decrypt(keyAccount.getApiKey());
+        String secretKey = encryptionService.decrypt(keyAccount.getSecretKey());
 
         long timestamp = timestampUtils.getBinanceServerTime();
         long recvWindow = 10000L; // Nới lỏng lên 60 giây

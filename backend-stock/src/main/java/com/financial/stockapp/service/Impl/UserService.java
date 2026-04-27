@@ -1,9 +1,7 @@
 package com.financial.stockapp.service.Impl;
 
 import com.financial.stockapp.dto.request.UserLoginRequest;
-import com.financial.stockapp.dto.response.LoginHistoryProjection;
-import com.financial.stockapp.dto.response.LoginResponse;
-import com.financial.stockapp.dto.response.UserInfoResponse;
+import com.financial.stockapp.dto.response.*;
 import com.financial.stockapp.entity.CustomUserDetails;
 import com.financial.stockapp.entity.User;
 import com.financial.stockapp.entity.UserLoginHistory;
@@ -15,8 +13,12 @@ import com.financial.stockapp.service.IUserService;
 import com.financial.stockapp.util.JwtUtils;
 import com.financial.stockapp.util.SecurityUtils;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -108,6 +110,34 @@ public class UserService implements IUserService {
         int userId = SecurityUtils.getCurrentUserId();
         List<LoginHistoryProjection> res = userLoginHistoryRepository.findByUserIdOrderByCreatedAtDesc(userId);
         return res;
+    }
+
+    public CountUserResponse countUser(){
+        long totalUser = userRepository.countTotalUser();
+        long activeUser = userRepository.countActiveUser();
+        return new CountUserResponse(totalUser,activeUser);
+    }
+
+    public Page<TotalUserProjection> getAllUsers(int page,int size){
+        Pageable pageable = PageRequest.of(page,size);
+        Page<TotalUserProjection> response = userRepository.getAllUser(pageable);
+        return response;
+    }
+
+
+    @Transactional // Rất quan trọng khi có Update dữ liệu
+    public void updateUserStatus(int userId) {
+        // 1. Tìm user và quăng lỗi luôn nếu không thấy (code rút gọn cực kỳ thanh lịch)
+        User user = userRepository.findById((long) userId);
+        if(user == null) throw new UserNotFoundException("");
+        // 2. Chống lỗi NullPointerException nếu isActive đang là null trong DB
+        boolean currentStatus = user.getIsActive() != null ? user.getIsActive() : false;
+
+        // 3. Đảo ngược trạng thái và set lại
+        user.setIsActive(!currentStatus);
+
+        // 4. Lưu vào DB
+        userRepository.save(user);
     }
 
 }

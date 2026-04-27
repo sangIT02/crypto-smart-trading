@@ -5,10 +5,10 @@ import com.financial.stockapp.dto.request.AnalyzeRequest;
 import com.financial.stockapp.dto.response.AnalyzeResponse;
 import com.financial.stockapp.service.Impl.ChatService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping
@@ -20,5 +20,15 @@ public class ChatController {
     @PostMapping("/chat")
     public AnalyzeResponse chat(@RequestBody AnalyzeRequest request){
         return chatService.analyzePredict(request);
+    }
+
+
+    @PostMapping("/ask")
+    public ResponseEntity<?> ask(@RequestParam(value = "session_id",required = false) String sessionId, @RequestParam("message")String message){
+        if (sessionId == null || sessionId.isEmpty()) {
+            sessionId = UUID.randomUUID().toString();
+        }
+        String response = chatService.chatWithIntent(sessionId,message);
+        return ResponseEntity.ok(response);
     }
 }

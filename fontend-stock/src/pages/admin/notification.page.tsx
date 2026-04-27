@@ -129,14 +129,10 @@ export const NotificationPage = () => {
       className="container-fluid py-4 pt-0"
       style={{ backgroundColor: "#000", minHeight: "100vh" }}
     >
-      <div className="mb-4">
+      <div className="py-2">
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
           <div>
-            <div className="text-secondary small mb-1">Notification Management</div>
             <h3 className="text-white fw-bold mb-1">Thông báo hàng loạt</h3>
-            <div className="text-secondary small">
-              Tạo, gửi và theo dõi thông báo đến toàn bộ hoặc từng nhóm người dùng
-            </div>
           </div>
 
           <button
@@ -210,7 +206,6 @@ export const NotificationPage = () => {
           <div className="card p-4 h-100" style={cardStyle}>
             <div className="d-flex justify-content-between align-items-center mb-3">
               <h5 className="text-white fw-bold mb-0">Tạo thông báo mới</h5>
-              <span className="text-secondary small">Bootstrap + OKX style</span>
             </div>
 
             <div className="mb-3">

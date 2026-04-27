@@ -38,11 +38,7 @@ public class AccountController {
     @GetMapping("/balance")
     public ApiResponse<BinanceAccountResponse> getBalance() {
         // Lấy key từ DB theo userId
-        BinanceAccount keyAccount = accountRepository.findById(10).orElse(null);
-        BinanceAccountResponse balance = binanceService.getAccountBalance(
-                keyAccount.getApiKey(),
-                keyAccount.getSecretKey()
-        );
+        BinanceAccountResponse balance = binanceService.getAccountBalance();
         return ApiResponse.<BinanceAccountResponse>builder()
                 .data(balance)
                 .code(200)

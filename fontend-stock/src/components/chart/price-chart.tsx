@@ -8,7 +8,6 @@ import {
     type CandlestickData,
     type UTCTimestamp
 } from 'lightweight-charts';
-
 // ================================================================
 // CONFIG
 // ================================================================
@@ -123,7 +122,87 @@ const DashboardChart: React.FC<Props> = ({ symbol }) => {
     const isLoadingRef = useRef(false);
     const currentTfRef = useRef(timeframe);
     const requestIdRef = useRef(0);
+    const tooltipRef = useRef<HTMLDivElement>(null); // ← THÊM MỚI
+    
+const handleDownloadChart = async () => {
+    if (!chartRef.current || !chartContainerRef.current) return;
 
+    try {
+        setStatus('Đang chụp chart...');
+        
+        // Lấy canvas từ chart container
+        const canvasElement = chartContainerRef.current.querySelector('canvas') as HTMLCanvasElement;
+        if (!canvasElement) {
+            setStatus('Không tìm thấy canvas');
+            return;
+        }
+
+        // Tạo canvas mới với độ phân giải cao hơn
+        const scale = 2;
+        const newCanvas = document.createElement('canvas');
+        newCanvas.width = canvasElement.width * scale;
+        newCanvas.height = canvasElement.height * scale + 100; // Thêm không gian cho metadata
+        
+        const ctx = newCanvas.getContext('2d');
+        if (!ctx) {
+            setStatus('Lỗi tạo canvas context');
+            return;
+        }
+
+        // Vẽ nền đen
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, newCanvas.width, newCanvas.height);
+
+        // Vẽ canvas gốc lên canvas mới với scale
+        ctx.scale(scale, scale);
+        ctx.drawImage(canvasElement, 0, 0);
+
+        // Reset scale để vẽ text
+        ctx.resetTransform();
+
+        // Thêm metadata lên ảnh
+        const now = new Date();
+        const timeStr = now.toLocaleString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+        });
+
+        const metadataText = `${symbol} | ${timeframe} | Price: ${lastPrice?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })} | ${timeStr}`;
+
+        ctx.fillStyle = '#888888';
+        ctx.font = '24px Arial';
+        ctx.fillText(metadataText, 20, newCanvas.height - 30);
+
+        // Tải xuống
+        newCanvas.toBlob((blob) => {
+            if (!blob) {
+                setStatus('Lỗi tạo blob');
+                return;
+            }
+
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `trading_chart_${symbol}_${timeframe}_${new Date().getTime()}.png`;
+            link.click();
+            
+            URL.revokeObjectURL(url);
+            setStatus('✓ Đã tải ảnh');
+            
+            setTimeout(() => {
+                setStatus('Realtime ' + symbol + ' - ' + timeframe);
+            }, 2000);
+        }, 'image/png');
+        
+    } catch (error) {
+        console.error('Lỗi khi chụp ảnh biểu đồ:', error);
+        setStatus('Lỗi: ' + (error as any).message);
+    }
+};
     const closeSocket = useCallback(() => {
         if (wsRef.current) {
             wsRef.current.close();
@@ -131,6 +210,7 @@ const DashboardChart: React.FC<Props> = ({ symbol }) => {
         }
     }, []);
 
+    
     // ================================
     // 1. TẠO CHART
     // ================================
@@ -168,6 +248,66 @@ const DashboardChart: React.FC<Props> = ({ symbol }) => {
 
         chartRef.current = chart;
         seriesRef.current = series;
+
+        // ================================
+        // TOOLTIP - THÊM MỚI
+        // ================================
+        chart.subscribeCrosshairMove((param) => {
+            const tooltip = tooltipRef.current;
+            if (!tooltip) return;
+
+            if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
+                tooltip.style.display = 'none';
+                return;
+            }
+
+            const data = param.seriesData.get(series) as CandlestickData;
+            if (!data) return;
+
+            const { open, high, low, close } = data;
+            const isUp = close >= open;
+            const color = isUp ? '#26a69a' : '#ef5350';
+            const change = ((close - open) / open * 100).toFixed(2);
+            const sign = isUp ? '+' : '';
+
+            const date = new Date((param.time as number) * 1000);
+            const timeStr = date.toLocaleString('vi-VN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+
+            const fmt = (v: number) =>
+                v.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 8,
+                });
+
+            tooltip.innerHTML = `
+                <div style="color:#888;font-size:11px;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid #2a2e39">${timeStr}</div>
+                <div style="display:grid;grid-template-columns:auto auto;gap:4px 20px;font-size:12px">
+                    <span style="color:#888">Mở</span>   <span style="color:${color}">${fmt(open)}</span>
+                    <span style="color:#888">Đóng</span> <span style="color:${color}">${fmt(close)}</span>
+                    <span style="color:#888">Cao</span>  <span style="color:#26a69a">${fmt(high)}</span>
+                    <span style="color:#888">Thấp</span> <span style="color:#ef5350">${fmt(low)}</span>
+                    <span style="color:#888">Thay đổi</span> <span style="color:${color}">${sign}${change}%</span>
+                </div>
+            `;
+
+            tooltip.style.display = 'block';
+
+            const containerWidth = chartContainerRef.current?.clientWidth ?? 0;
+            let left = param.point.x + 16;
+            if (left + 190 > containerWidth) left = param.point.x - 206;
+
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${Math.max(0, param.point.y - 80)}px`;
+        });
+        // ================================
+        // END TOOLTIP
+        // ================================
 
         const handleResize = () => {
             if (!chartContainerRef.current || !chartRef.current) return;
@@ -390,7 +530,7 @@ const DashboardChart: React.FC<Props> = ({ symbol }) => {
         lastPrice === null
             ? '#B2B5BE'
             : candlesRef.current.length > 1 &&
-              lastPrice >= candlesRef.current[candlesRef.current.length - 1]?.open
+            lastPrice >= candlesRef.current[candlesRef.current.length - 1]?.open
             ? '#26a69a'
             : '#ef5350';
 
@@ -441,16 +581,38 @@ const DashboardChart: React.FC<Props> = ({ symbol }) => {
                 </div>
             </div>
 
-            <div
-                ref={chartContainerRef}
-                style={{
-                    width: '100%',
-                    height: 520,
-                    borderRadius: 12,
-                    overflow: 'hidden',
-                    background: '#000',
-                }}
-            />
+            {/* ← THÊM MỚI: bọc position relative + div tooltip */}
+            <div style={{ position: 'relative' }}>
+                <button onClick={handleDownloadChart}>
+        Chụp chart
+      </button>
+                <div
+                    ref={chartContainerRef}
+                    style={{
+                        width: '100%',
+                        height: 520,
+                        borderRadius: 12,
+                        overflow: 'hidden',
+                        background: '#000',
+                    }}
+                />
+                <div
+                    ref={tooltipRef}
+                    style={{
+                        display: 'none',
+                        position: 'absolute',
+                        pointerEvents: 'none',
+                        zIndex: 10,
+                        background: '#0d0f1a',
+                        border: '1px solid #2a2e39',
+                        borderRadius: 8,
+                        padding: '8px 12px',
+                        color: '#d1d4dc',
+                        minWidth: '175px',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
+                    }}
+                />
+            </div>
         </div>
     );
 };

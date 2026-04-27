@@ -7,6 +7,11 @@ import {
   type ConditionType,
 } from "../../services/alertPriceService";
 import { toast } from "react-toastify";
+import {
+  coinService,
+  type CoinPairData,
+  type CoinPairResponse,
+} from "../../services/coinService";
 
 const SYMBOL_OPTIONS = [
   "BTC/USDT",
@@ -140,9 +145,11 @@ function StatCard({
 function AlertCard({
   alert,
   onToggleStatus,
+  onDelete,
 }: {
   alert: AlertPriceResponse;
   onToggleStatus: (id: number) => void;
+  onDelete: (id: number) => void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -155,7 +162,6 @@ function AlertCard({
   const directionText = useMemo(() => {
     return "";
   }, [distance]);
-
   return (
     <div
       style={{
@@ -335,6 +341,7 @@ function AlertCard({
                   borderColor: "#4c1010",
                   background: "#190707",
                 }}
+                onClick={() => onDelete(alert.id)}
               >
                 Xóa
               </button>
@@ -395,19 +402,95 @@ function MiniInfo({ label, value }: { label: string; value: string }) {
   );
 }
 
-function AddAlertForm({ onCancel }: { onCancel: () => void }) {
-  const [symbol, setSymbol] = useState("BTC/USDT");
+function AddAlertForm({
+  onCancel,
+  handleAddAlert,
+}: {
+  onCancel: () => void;
+  handleAddAlert: (newAlert: AlertPriceResponse) => void;
+}) {
+  const [symbol, setSymbol] = useState<string>("BTC/USDT");
   const [condition, setCondition] = useState<ConditionType>("PRICE_ABOVE");
   const [targetPrice, setTargetPrice] = useState("");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
   const [alertMode, setAlertMode] = useState<AlertMode>("ONCE");
+  // --- STATE CHO PHÂN TRANG (PAGINATION) ---
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true); // Cờ kiểm tra xem còn data ở Backend không
+  const [isFetchingMore, setIsFetchingMore] = useState(false); // Cờ hiện loading khi cuộn
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false); // Trạng thái mở/đóng của menu tự chế
+  const [listCoins, setListCoins] = useState<CoinPairData[]>([]);
+  const fetchCoinPairs = async (pageNumber: number) => {
+    if (!hasMore && pageNumber > 0) return; // Nếu hết data rồi thì không gọi nữa
 
+    setIsFetchingMore(true);
+    try {
+      // Gọi API với size = 20 để cuộn cho sướng
+      const response = await coinService.getCoinPairs(pageNumber, 20);
+      const dataResponse: CoinPairResponse = await response.data; // Giả sử API trả về đúng kiểu này
+      const dataArray = await dataResponse.data; // Giả sử API trả về mảng data trong trường 'data'
+      const isLast = await !dataResponse.hasMore; // Spring Slice thường có cờ 'last' (true nếu là trang cuối)
+      console.log("✅ API coin trả về:", { isLast });
+      if (pageNumber === 0) {
+        // Lần đầu mở: Lưu đè
+        setListCoins(dataArray);
+        setHasMore(isLast);
+        if (dataArray && dataArray.length > 0) {
+          setSymbol(dataArray[0].symbol);
+        }
+      } else {
+        // Cuộn trang 2, 3...: Nối mảng mới vào mảng cũ
+        setListCoins((prevCoins) => [...(prevCoins || []), ...dataArray]);
+      }
+
+      setHasMore(!isLast); // Nếu isLast = true -> hasMore = false
+    } catch (error) {
+      console.error("❌ Lỗi gọi API coin:", error);
+    } finally {
+      setIsFetchingMore(false);
+    }
+  };
+
+  // Gọi lần đầu khi mở Modal
+  useEffect(() => {
+    fetchCoinPairs(0);
+  }, []);
+
+  // Gọi API mỗi khi biến `page` thay đổi (do người dùng cuộn)
+  useEffect(() => {
+    if (page > 0) {
+      fetchCoinPairs(page);
+    }
+  }, [page]);
+
+  // Hàm xử lý sự kiện khi cuộn
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+
+    // Dùng Math.ceil để làm tròn lên, và tăng vùng bù trừ lên 20px
+    if (
+      Math.ceil(target.scrollTop) + target.clientHeight >=
+      target.scrollHeight - 20
+    ) {
+      console.log("👇 Đã chạm đáy! Trạng thái hiện tại:", {
+        isFetchingMore,
+        hasMore,
+        page,
+      });
+
+      if (!isFetchingMore && hasMore) {
+        setPage((prevPage) => prevPage + 1);
+      }
+    }
+  };
   const fetchAlerts = async (body: AlertCreateRequest) => {
     try {
       const response = await alertPriceService.CreateAlertsPrice(body);
       console.log(response.data.data);
       toast.success(response.data.message);
+      const newAlert: AlertPriceResponse = response.data.data;
+      handleAddAlert(newAlert);
       onCancel();
     } catch (error) {
       console.log(error);
@@ -428,6 +511,11 @@ function AddAlertForm({ onCancel }: { onCancel: () => void }) {
 
     fetchAlerts(body);
   }
+  // useEffect(() => {
+  //   fetchCoinPairs();
+  //   console.log("listCoins");
+  // }, []);
+
   return (
     <div
       style={{
@@ -449,7 +537,7 @@ function AddAlertForm({ onCancel }: { onCancel: () => void }) {
           width: "100%",
           maxWidth: 640,
           background: "linear-gradient(180deg, #0b0b0b 0%, #050505 100%)",
-          border: "1px solid #1d1d1d",
+          border: "2px solid #2e2e2e",
           borderRadius: 18,
           padding: 20,
           boxShadow:
@@ -501,23 +589,91 @@ function AddAlertForm({ onCancel }: { onCancel: () => void }) {
             marginBottom: 12,
           }}
         >
-          <div>
+          <div style={{ position: "relative" }}>
             <label style={fieldLabel}>CẶP GIAO DỊCH</label>
-            <select
-              value={symbol}
-              onChange={(e) => setSymbol(e.target.value)}
-              style={inputStyle}
+
+            {/* Nút bấm giả làm thẻ select */}
+            <div
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              style={{
+                ...inputStyle,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                cursor: "pointer",
+              }}
             >
-              {SYMBOL_OPTIONS.map((item) => (
-                <option
-                  key={item}
-                  value={item}
-                  style={{ background: "#050505", color: "#fff" }}
-                >
-                  {item}
-                </option>
-              ))}
-            </select>
+              <span>{symbol ? symbol + "/USDT" : "Đang tải..."}</span>
+              <span style={{ fontSize: "10px", color: "#666" }}>▼</span>
+            </div>
+
+            {/* Menu xổ xuống (Chỉ hiện khi isDropdownOpen = true) */}
+            {isDropdownOpen && (
+              <div
+                onScroll={handleScroll} // Bắt sự kiện cuộn ở đây!
+                style={{
+                  position: "absolute",
+                  top: "100%", // Nằm ngay dưới nút bấm
+                  left: 0,
+                  right: 0,
+                  marginTop: "4px",
+                  background: "#050505", // Màu nền menu
+                  border: "2px solid #2e2e2e",
+                  borderRadius: "8px",
+                  maxHeight: "300px", // Giới hạn chiều cao để sinh ra thanh cuộn
+                  overflowY: "auto", // Bật thanh cuộn dọc
+                  zIndex: 9999,
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+                }}
+              >
+                {listCoins?.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => {
+                      setSymbol(item.symbol); // Cập nhật state
+                      setIsDropdownOpen(false); // Chọn xong thì đóng menu
+                    }}
+                    style={{
+                      padding: "10px 14px",
+                      cursor: "pointer",
+                      color: symbol === item.symbol ? "#f0b90b" : "#fff", // Đổi màu vàng nếu đang chọn
+                      background:
+                        symbol === item.symbol
+                          ? "rgba(240,185,11,0.05)"
+                          : "transparent",
+                      borderBottom: "1px solid #111", // Dòng kẻ mờ giữa các item
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: "14px",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#1a1a1a")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background =
+                        symbol === item.symbol
+                          ? "rgba(240,185,11,0.05)"
+                          : "transparent")
+                    }
+                  >
+                    {item.symbol + "/USDT"}
+                  </div>
+                ))}
+
+                {/* Dòng chữ loading hiện ra ở cuối khi đang tải thêm */}
+                {isFetchingMore && (
+                  <div
+                    style={{
+                      padding: "10px",
+                      textAlign: "center",
+                      color: "#888",
+                      fontSize: "12px",
+                    }}
+                  >
+                    Đang tải thêm...
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
@@ -739,8 +895,34 @@ export default function PriceAlertsPage() {
       toast.error("Lỗi khi tải danh sách cảnh báo.");
     }
   };
-  function handleToggleStatus(id: number) {}
+  function handleToggleStatus(id: number) {
+    try {
+      const response = alertPriceService.PauseAlertPrice(id);
+      toast.success("Cập nhật trạng thái thành công!");
+      setAlerts((prev) =>
+        prev.map((alert) =>
+          alert.id === id
+            ? { ...alert, isActive: alert.isActive === 1 ? 0 : 1 }
+            : alert,
+        ),
+      );
+    } catch (error) {
+      toast.error("Lỗi khi cập nhật trạng thái cảnh báo.");
+    }
+  }
+  async function handleDeleteAlert(id: number) {
+    try {
+      const response = await alertPriceService.DeleteAlertPrice(id);
+      toast.success("Xóa cảnh báo thành công!");
+      setAlerts((prev) => prev.filter((alert) => alert.id !== id));
+    } catch (error) {
+      toast.error("Lỗi khi xóa cảnh báo.");
+    }
+  }
 
+  const handleAddAlert = (newAlert: AlertPriceResponse) => {
+    setAlerts((prev) => [...prev, newAlert]);
+  };
   useEffect(() => {
     fetchAlerts();
   }, []);
@@ -856,10 +1038,26 @@ export default function PriceAlertsPage() {
           marginBottom: 18,
         }}
       >
-        <StatCard title="Tổng cảnh báo" value={alerts.length} hint="Tất cả alerts đã tạo" />
-        <StatCard title="Đang bật" value={alerts.filter(a => a.isActive).length} hint="Đang theo dõi realtime" />
-        <StatCard title="Tạm dừng" value={alerts.filter(a => !a.isActive).length} hint="Chưa nhận thông báo" />
-        <StatCard title="Đã kích hoạt" value={alerts.filter(a => a.isActive).length} hint="Đã chạm điều kiện" />
+        <StatCard
+          title="Tổng cảnh báo"
+          value={alerts.length}
+          hint="Tất cả alerts đã tạo"
+        />
+        <StatCard
+          title="Đang bật"
+          value={alerts.filter((a) => a.isActive).length}
+          hint="Đang theo dõi realtime"
+        />
+        <StatCard
+          title="Tạm dừng"
+          value={alerts.filter((a) => !a.isActive).length}
+          hint="Chưa nhận thông báo"
+        />
+        <StatCard
+          title="Đã kích hoạt"
+          value={alerts.filter((a) => a.isTriggered).length}
+          hint="Đã chạm điều kiện"
+        />
       </div>
 
       {alerts.length === 0 ? (
@@ -893,12 +1091,18 @@ export default function PriceAlertsPage() {
               key={alert.id}
               alert={alert}
               onToggleStatus={handleToggleStatus}
+              onDelete={handleDeleteAlert}
             />
           ))}
         </div>
       )}
 
-      {showForm && <AddAlertForm onCancel={() => setShowForm(false)} />}
+      {showForm && (
+        <AddAlertForm
+          onCancel={() => setShowForm(false)}
+          handleAddAlert={handleAddAlert}
+        />
+      )}
     </div>
   );
 }

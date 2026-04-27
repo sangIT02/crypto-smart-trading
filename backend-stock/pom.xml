@@ -102,6 +102,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
         <dependencyManagement>
             <dependencies>
@@ -125,6 +130,8 @@
                         <path>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
+                            <version>1.18.32</version> <!-- thêm version cụ thể vào đây -->
+
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
