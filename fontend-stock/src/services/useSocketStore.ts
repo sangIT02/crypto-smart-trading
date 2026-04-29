@@ -27,7 +27,7 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
     connect: () => {
         if (get().ws) return; // Đã kết nối rồi → bỏ qua
 
-        const ws = new WebSocket('wss://fstream.binance.com/ws/btcusdt@ticker');
+        const ws = new WebSocket('wss://fstream.binance.com/market/ws/btcusdt@ticker');
 
         ws.onopen    = () => set({ connected: true });
         ws.onmessage = (e) => {

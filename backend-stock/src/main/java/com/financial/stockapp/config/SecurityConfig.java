@@ -38,7 +38,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/users/login", "/api/users/register").permitAll() // public
-                        .anyRequest().authenticated() // ✅ còn lại phải có token
+                        .anyRequest().permitAll() // ✅ còn lại phải có token
                 )
 
                 // 4. Quản lý Session (Quan trọng: Stateless)

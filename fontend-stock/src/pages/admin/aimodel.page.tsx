@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Activity,
   Brain,
@@ -10,115 +10,111 @@ import {
   Search,
   ShieldAlert,
 } from "lucide-react";
+import { Pagination, ConfigProvider } from "antd";
+import { AddAiModelModal } from "../../components/admin/AddAiModelModal";
+import { manageAIModelService, type AddNewModelData, type AIModel, type TotalModel } from "../../services/manageAIModelService";
+import type { PageData } from "../../services/userService";
+import { formatBinanceTime } from "../../components/position/OpenOrder";
+import { formatDate } from "../../helper/FormatDateTime";
+import { toast } from "react-toastify";
 
-type ModelStatus = "Running" | "Warning" | "Stopped";
-type ModelType = "Forecasting" | "Strategy" | "Detection" | "Ensemble";
+type ModelStatus = "Running" | "Stopped";
+type ModelType = "Forecasting" ;
 
-type AiModelItem = {
-  id: string;
-  name: string;
-  type: ModelType;
-  version: string;
-  status: ModelStatus;
-  accuracy: number;
-  latency: number;
-  cpu: number;
-  requests: number;
-  lastUpdated: string;
-};
 
 export const AiModelPage = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState(1); // 1-based page để gửi cho backend
+  const [pageSize, setPageSize] = useState(10);
+  const [pageData, setPageData] = useState<PageData<AIModel> | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [totalModels, setTotalModels] = useState<TotalModel>({
+    totalAIModel: 0,
+    totalAIModelActive: 0,
+    totalAIModelInActive: 0,
+  });
 
-  const models: AiModelItem[] = useMemo(
-    () => [
-      {
-        id: "AI-001",
-        name: "TrendSense",
-        type: "Forecasting",
-        version: "v2.1.0",
-        status: "Running",
-        accuracy: 87.4,
-        latency: 118,
-        cpu: 71,
-        requests: 18240,
-        lastUpdated: "2026-04-08 09:12",
-      },
-      {
-        id: "AI-002",
-        name: "Grid Optimizer",
-        type: "Strategy",
-        version: "v1.8.2",
-        status: "Running",
-        accuracy: 91.2,
-        latency: 92,
-        cpu: 62,
-        requests: 14093,
-        lastUpdated: "2026-04-08 09:05",
-      },
-      {
-        id: "AI-003",
-        name: "Risk Guard",
-        type: "Detection",
-        version: "v3.0.1",
-        status: "Warning",
-        accuracy: 94.1,
-        latency: 240,
-        cpu: 89,
-        requests: 22341,
-        lastUpdated: "2026-04-08 08:48",
-      },
-      {
-        id: "AI-004",
-        name: "Signal Fusion",
-        type: "Ensemble",
-        version: "v1.2.5",
-        status: "Stopped",
-        accuracy: 0,
-        latency: 0,
-        cpu: 0,
-        requests: 0,
-        lastUpdated: "2026-04-07 22:30",
-      },
-      {
-        id: "AI-005",
-        name: "Volatility Scan",
-        type: "Detection",
-        version: "v1.4.3",
-        status: "Running",
-        accuracy: 88.7,
-        latency: 101,
-        cpu: 57,
-        requests: 12690,
-        lastUpdated: "2026-04-08 09:09",
-      },
-    ],
-    []
-  );
+  const models = pageData?.content || [];
+  const totalItems = pageData?.totalElements || 0;
 
-  const filteredModels = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
+  const fetchModels = async (page: number, size: number) => {
+    try {
+      setLoading(true);
+      const response = await manageAIModelService.getAllModelsWithPagination(page, size);
+      setPageData(response.data.data);
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách mô hình:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-    return models.filter((model) => {
-      const matchSearch =
-        !keyword ||
-        model.id.toLowerCase().includes(keyword) ||
-        model.name.toLowerCase().includes(keyword) ||
-        model.type.toLowerCase().includes(keyword) ||
-        model.version.toLowerCase().includes(keyword);
+  const handleUpdateModel = async (modelId: number) => {
+    const toastId = toast.loading("Đang cập nhật trạng thái mô hình...");
+    try {
+      const response = await manageAIModelService.updateModelStatus(modelId);
+      console.log("da", response.data.code);
+      if (response.data.code === 200) {
+        toast.update(toastId, {
+                render: `Đã cập nhật thành công!`,
+                type: "success",
+                isLoading: false,
+                autoClose: 3000,
+              });
+      }
+      fetchModels(currentPage, pageSize);
+    } catch (error) {
+      toast.error("Có lỗi xảy ra khi cập nhật trạng thái mô hình.", {
+        toastId,
+      });
+      console.error("Lỗi khi cập nhật trạng thái mô hình:", error);
+    }
+  };
 
-      const matchStatus =
-        statusFilter === "All" || model.status === statusFilter;
+  const fetchTotalModels = async () => {
+    try {
+      const response = await manageAIModelService.getTotalModels();
+      const data: TotalModel = response.data.data;
+      setTotalModels(data);
+    } catch (error) {
+      console.error("Lỗi khi tải tổng mô hình:", error);
+    }
+  }
 
-      return matchSearch && matchStatus;
-    });
-  }, [models, search, statusFilter]);
+  // Gọi API khi thay đổi trang, kích thước trang
+  useEffect(() => {
+    fetchModels(currentPage, pageSize);
+    fetchTotalModels();
+  }, [currentPage, pageSize]);
+
+  // Reset về trang 1 khi thay đổi search hoặc filter
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setStatusFilter(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handlePaginationChange = (page: number, newPageSize: number) => {
+    setCurrentPage(page); // Gửi trực tiếp page từ Ant Design (1-based)
+    if (newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+      setCurrentPage(1);
+    }
+  };
+
+  const startIndex = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endIndex = Math.min(currentPage * pageSize, totalItems);
 
   const cardStyle: React.CSSProperties = {
     backgroundColor: "#000",
     borderRadius: "12px",
-    border: "1px solid #1a1a1a",
+    border: "2px solid #2e2e2e",
   };
 
   const inputStyle: React.CSSProperties = {
@@ -197,29 +193,32 @@ export const AiModelPage = () => {
       <div className="mb-4">
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
           <div>
-            <div className="text-secondary small mb-1">AI Model Management</div>
             <h3 className="text-white fw-bold mb-1">Quản lý mô hình AI</h3>
             <div className="text-secondary small">
-              Theo dõi trạng thái, hiệu suất, độ chính xác và điều khiển các mô hình AI
+              Theo dõi trạng thái, hiệu suất, độ chính xác và điều khiển các mô
+              hình AI
             </div>
           </div>
 
           <button
             className="btn text-dark fw-semibold"
             style={{ backgroundColor: "#F0B90B", border: "none" }}
+            onClick={() => setShowModal(true)}
           >
             + Thêm mô hình
           </button>
         </div>
       </div>
 
-      <div className="row g-3 mb-4">
+      <div className="row g-3 mb-2">
         <div className="col-12 col-md-6 col-xl-3">
           <div className="card p-3 h-100" style={cardStyle}>
             <div className="d-flex justify-content-between align-items-start">
               <div>
                 <div className="text-secondary small">Tổng mô hình</div>
-                <div className="text-white fw-bold fs-4 mt-2">{models.length}</div>
+                <div className="text-white fw-bold fs-4 mt-2">
+                  {totalModels.totalAIModel}
+                </div>
               </div>
               <Brain size={18} color="#F0B90B" />
             </div>
@@ -232,7 +231,7 @@ export const AiModelPage = () => {
               <div>
                 <div className="text-secondary small">Đang hoạt động</div>
                 <div className="text-white fw-bold fs-4 mt-2">
-                  {models.filter((m) => m.status === "Running").length}
+                  {totalModels.totalAIModelActive}
                 </div>
               </div>
               <Activity size={18} color="#00C087" />
@@ -246,7 +245,7 @@ export const AiModelPage = () => {
               <div>
                 <div className="text-secondary small">Cần cảnh báo</div>
                 <div className="text-white fw-bold fs-4 mt-2">
-                  {models.filter((m) => m.status === "Warning").length}
+                  {0}
                 </div>
               </div>
               <ShieldAlert size={18} color="#F0B90B" />
@@ -260,7 +259,7 @@ export const AiModelPage = () => {
               <div>
                 <div className="text-secondary small">Dừng hoạt động</div>
                 <div className="text-white fw-bold fs-4 mt-2">
-                  {models.filter((m) => m.status === "Stopped").length}
+                  {totalModels.totalAIModelInActive}
                 </div>
               </div>
               <Power size={18} color="#F6465D" />
@@ -269,10 +268,12 @@ export const AiModelPage = () => {
         </div>
       </div>
 
-      <div className="card p-4 mb-4" style={cardStyle}>
+      <div className="card p-2 mb-2" style={cardStyle}>
         <div className="row g-3 align-items-end">
           <div className="col-12 col-lg-8">
-            <label className="form-label text-secondary small">Tìm kiếm mô hình</label>
+            <label className="form-label text-secondary small">
+              Tìm kiếm mô hình
+            </label>
             <div className="position-relative">
               <Search
                 size={16}
@@ -284,36 +285,37 @@ export const AiModelPage = () => {
                 className="form-control ps-5"
                 placeholder="Tìm theo ID, tên mô hình, loại, version..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={handleSearchChange}
                 style={inputStyle}
               />
             </div>
           </div>
 
           <div className="col-12 col-lg-4">
-            <label className="form-label text-secondary small">Trạng thái</label>
+            <label className="form-label text-secondary small">
+              Trạng thái
+            </label>
             <select
               className="form-select"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={handleStatusFilterChange}
               style={inputStyle}
             >
               <option value="All">Tất cả</option>
               <option value="Running">Running</option>
-              <option value="Warning">Warning</option>
               <option value="Stopped">Stopped</option>
             </select>
           </div>
         </div>
       </div>
 
-      <div className="row g-4 mb-4">
-        <div className="col-12 col-xl-8">
+      <div className="row g-4 mb-2">
+        <div className="col-12 col-xl-12">
           <div className="card p-4 h-100" style={cardStyle}>
             <div className="d-flex justify-content-between align-items-center mb-3">
               <h5 className="text-white fw-bold mb-0">Danh sách mô hình</h5>
               <span className="text-secondary small">
-                {filteredModels.length} kết quả
+                {totalItems} kết quả
               </span>
             </div>
 
@@ -325,86 +327,91 @@ export const AiModelPage = () => {
                     <th className="border-0 bg-transparent">Mô hình</th>
                     <th className="border-0 bg-transparent">Loại</th>
                     <th className="border-0 bg-transparent">Trạng thái</th>
-                    <th className="border-0 bg-transparent">Accuracy</th>
-                    <th className="border-0 bg-transparent">Latency</th>
-                    <th className="border-0 bg-transparent">Requests</th>
-                    <th className="border-0 bg-transparent text-center">Hành động</th>
+                    <th className="border-0 bg-transparent">Trained at</th>
+                    <th className="border-0 bg-transparent" title="Độ chính xác (Accuracy): Tỷ lệ phần trăm các dự đoán đúng trên tổng số mẫu.">Accuracy</th>
+                    <th className="border-0 bg-transparent" title="Sai số tuyệt đối trung bình (MAE): Mô hình dự đoán lệch bao nhiêu so với thực tế.">mae</th>
+                    <th className="border-0 bg-transparent" title="Sai số bình phương trung bình (RMSE): Mô hình dự đoán lệch bao nhiêu so với thực tế.">rmse</th>
+                    <th className="border-0 bg-transparent text-center">
+                      Hành động
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredModels.map((model) => (
+                  {models.map((model) => (
                     <tr key={model.id}>
-                      <td style={{ backgroundColor: "transparent" }}>{model.id}</td>
+                      <td style={{ backgroundColor: "transparent" }}>
+                        {model.id}
+                      </td>
 
                       <td style={{ backgroundColor: "transparent" }}>
                         <div>
-                          <div className="text-white fw-semibold">{model.name}</div>
-                          <div className="text-secondary small">{model.version}</div>
+                          <div className="text-white fw-semibold">
+                            {model.modelName}
+                          </div>
+                          <div className="text-secondary small">
+                            {"LSTM"}
+                          </div>
                         </div>
                       </td>
 
-                      <td style={{ backgroundColor: "transparent" }}>{model.type}</td>
+                      <td style={{ backgroundColor: "transparent" }} title="Dự đoán các giá trị tương lai dựa trên quy luật từ quá khứ.">
+                        {"Forecasting"}
+                      </td>
 
                       <td style={{ backgroundColor: "transparent" }}>
                         <span
                           className="px-2 py-1 rounded small"
-                          style={getBadgeStyle(model.status)}
+                          style={getBadgeStyle(model.isActive ? "Running" : "Stopped")}
                         >
-                          {model.status}
+                          {model.isActive ? "Running" : "Stopped"}
                         </span>
                       </td>
-
                       <td style={{ backgroundColor: "transparent" }}>
-                        {model.status === "Stopped" ? "--" : `${model.accuracy}%`}
+                        {formatDate(model.trainedAt, "full")}
                       </td>
 
                       <td style={{ backgroundColor: "transparent" }}>
-                        {model.status === "Stopped" ? "--" : `${model.latency} ms`}
+                        {model.isActive === false
+                          ? "--"
+                          : `${model.directionAcc}%`}
                       </td>
 
                       <td style={{ backgroundColor: "transparent" }}>
-                        {model.requests.toLocaleString()}
+                        {model.isActive === false
+                          ? "--"
+                          : `${model.mae} `}
+                      </td>
+
+                      <td style={{ backgroundColor: "transparent" }}>
+                        {model.rmse}
                       </td>
 
                       <td style={{ backgroundColor: "transparent" }}>
                         <div className="d-flex justify-content-center gap-2 flex-wrap">
-                          <button
-                            className="btn btn-sm text-white"
-                            style={{
-                              backgroundColor: "#111",
-                              border: "1px solid #1f1f1f",
-                            }}
-                            title="Xem chi tiết"
-                          >
-                            <Eye size={15} />
-                          </button>
+
 
                           <button
                             className="btn btn-sm"
+                            onClick = {() => handleUpdateModel(model.id)}
                             style={{
-                              color: "#F0B90B",
-                              backgroundColor: "rgba(240, 185, 11, 0.12)",
-                              border: "1px solid rgba(240, 185, 11, 0.2)",
-                            }}
-                            title="Restart"
-                          >
-                            <RefreshCcw size={15} />
-                          </button>
-
-                          <button
-                            className="btn btn-sm"
-                            style={{
-                              color: model.status === "Stopped" ? "#00C087" : "#F6465D",
+                              color:
+                                model.isActive === false
+                                  ? "#00C087"
+                                  : "#F6465D",
                               backgroundColor:
-                                model.status === "Stopped"
+                                model.isActive === false
                                   ? "rgba(0, 192, 135, 0.12)"
                                   : "rgba(246, 70, 93, 0.12)",
                               border:
-                                model.status === "Stopped"
+                                model.isActive === false
                                   ? "1px solid rgba(0, 192, 135, 0.2)"
                                   : "1px solid rgba(246, 70, 93, 0.2)",
                             }}
-                            title={model.status === "Stopped" ? "Bật mô hình" : "Tắt mô hình"}
+                            title={
+                              model.isActive === false
+                                ? "Bật mô hình"
+                                : "Tắt mô hình"
+                            }
                           >
                             <Power size={15} />
                           </button>
@@ -413,7 +420,7 @@ export const AiModelPage = () => {
                     </tr>
                   ))}
 
-                  {filteredModels.length === 0 && (
+                  {models.length === 0 && (
                     <tr>
                       <td
                         colSpan={8}
@@ -427,81 +434,53 @@ export const AiModelPage = () => {
                 </tbody>
               </table>
             </div>
-          </div>
-        </div>
 
-        <div className="col-12 col-xl-4">
-          <div className="card p-4 h-100" style={cardStyle}>
-            <h5 className="text-white fw-bold mb-3">Hiệu suất hệ thống AI</h5>
-
-            <div
-              className="p-3 rounded mb-3"
-              style={{
-                backgroundColor: "#0b0b0b",
-                border: "1px solid #171717",
-              }}
-            >
-              <div className="d-flex align-items-center gap-2 mb-3">
-                <Cpu size={16} color="#F0B90B" />
-                <span className="text-white small fw-semibold">CPU Usage</span>
-              </div>
-
-              <div className="d-flex flex-column gap-3">
-                {models.slice(0, 4).map((model) => (
-                  <div key={model.id}>
-                    <div className="d-flex justify-content-between mb-1">
-                      <span className="text-secondary small">{model.name}</span>
-                      <span className="text-white small">{model.cpu}%</span>
-                    </div>
-                    {renderProgress(model.cpu)}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div
-              className="p-3 rounded mb-3"
-              style={{
-                backgroundColor: "#0b0b0b",
-                border: "1px solid #171717",
-              }}
-            >
-              <div className="d-flex align-items-center gap-2 mb-3">
-                <Gauge size={16} color="#F0B90B" />
-                <span className="text-white small fw-semibold">Tóm tắt nhanh</span>
-              </div>
-
-              <div className="d-flex justify-content-between mb-2">
-                <span className="text-secondary small">Avg Accuracy</span>
-                <span className="text-white small">90.35%</span>
-              </div>
-
-              <div className="d-flex justify-content-between mb-2">
-                <span className="text-secondary small">Avg Latency</span>
-                <span className="text-white small">137 ms</span>
-              </div>
-
-              <div className="d-flex justify-content-between">
-                <span className="text-secondary small">Tổng requests</span>
-                <span className="text-white small">67,364</span>
-              </div>
-            </div>
-
-            <div
-              className="p-3 rounded"
-              style={{
-                backgroundColor: "rgba(240, 185, 11, 0.08)",
-                border: "1px solid rgba(240, 185, 11, 0.15)",
-              }}
-            >
-              <div className="text-white small fw-semibold mb-1">Khuyến nghị</div>
-              <div className="text-secondary small">
-                Risk Guard đang có latency cao và CPU usage lớn. Nên kiểm tra lại tài nguyên hoặc restart model.
-              </div>
+            <div className="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-3">
+              <span className="text-secondary small">
+                Hiển thị {startIndex} - {endIndex} trong {totalItems} mô hình
+              </span>
+              
+              {totalItems > 0 && (
+                <ConfigProvider
+                  theme={{
+                    token: {
+                      colorPrimary: "#F0B90B",
+                      colorBgContainer: "#111",
+                      colorText: "#fff",
+                      colorBorder: "#1f1f1f",
+                      borderRadius: 6,
+                    },
+                  }}
+                >
+                  <Pagination
+                    current={currentPage}
+                    pageSize={pageSize}
+                    total={totalItems}
+                    onChange={handlePaginationChange}
+                    pageSizeOptions={["5", "10", "20", "50"]}
+                    showSizeChanger
+                    showQuickJumper
+                    showTotal={(total) => `Tổng ${total} mô hình`}
+                    locale={{
+                      items_per_page: "/ trang",
+                      jump_to: "Đến trang",
+                      page: "",
+                    }}
+                    style={{ marginLeft: "auto" }}
+                  />
+                </ConfigProvider>
+              )}
             </div>
           </div>
         </div>
       </div>
+      <AddAiModelModal
+        show={showModal}
+        onClose={() => setShowModal(false)}
+        onSubmit={(data) => {
+          console.log("NEW MODEL:", data);
+        }}
+      />
     </div>
   );
 };

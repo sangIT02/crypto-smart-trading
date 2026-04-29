@@ -63,6 +63,7 @@ public class ChatService {
             
             Yêu cầu:
             Phân tích tín hiệu và đề xuất lệnh giao dịch phù hợp với mức rủi ro đã chọn.
+            trả về dưới dạng JSON
             """.formatted(
                             request.prediction(),
                             request.capital(),

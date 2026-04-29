@@ -194,7 +194,7 @@ export default function AIPredictionPage() {
     }
 
     const connectSocket = (symbol: string) => {
-        const ws = new WebSocket(`wss://fstream.binance.com/ws/${symbol.toLocaleLowerCase()}usdt@ticker`);
+        const ws = new WebSocket(`wss://fstream.binance.com/market/ws/${symbol.toLocaleLowerCase()}usdt@ticker`);
         ws.onopen = () => {
             console.log('✅ Đã kết nối tới socket', symbol);
         };

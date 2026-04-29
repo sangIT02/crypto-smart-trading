@@ -25,7 +25,7 @@ public class PredictionController {
     public ResponseEntity<PredictionResponse> predict(
             @RequestParam                  String symbol,
             @RequestParam(defaultValue = "1d")      String timeframe,
-            @RequestParam(defaultValue = "ENSEMBLE") String model,
+            @RequestParam(defaultValue = "LSTM") String model,
             @RequestParam() double currentPrice
     ) {
         CompletableFuture<PredictionResponse> result = predictionService.predict(symbol, timeframe, model,currentPrice);
