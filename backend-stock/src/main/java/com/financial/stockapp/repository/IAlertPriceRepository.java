@@ -1,6 +1,6 @@
 package com.financial.stockapp.repository;
 
-import com.financial.stockapp.dto.response.AlertPriceProjection;
+import com.financial.stockapp.repository.projection.AlertPriceProjection;
 import com.financial.stockapp.entity.AlertPrice;
 import org.springframework.data.jpa.repository.JpaRepository;
 

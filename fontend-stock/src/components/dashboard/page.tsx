@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { AppLayout } from "../../layout/MainLayout";
 import { StatCards } from "./stat-card";
-import { Gauge, Star, TrendingUp } from "lucide-react";
+import { AlertTriangle, Award, Gauge, Star, TrendingUp, Zap } from "lucide-react";
 import { CoinSelector, MOCK_COINS } from "../TabBtn";
 import DashboardChart from "../chart/price-chart";
 import SignalSummary from "../chart/SignalSummary";
@@ -130,12 +130,75 @@ export default function DashboardPage() {
 
   return (
     <div
-      className="container-fluid py-4 pt-0"
-      style={{ minHeight: "100vh", marginTop: "10px", backgroundColor: "#000" }}
+      className="container-fluid py-4 pt-2"
+      style={{ minHeight: "100vh", backgroundColor: "#000" }}
     >
-      {/* <div className="mb-3">
-                    <StatCards />
-                </div> */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+        gap: "15px",
+        marginBottom: "15px"
+      }}>
+        <div style={{
+          backgroundColor: "#0A0A0A",
+          borderRadius: "16px",
+          border: "1px solid #1F1F1F",
+          padding: "24px",
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <p style={{ color: "#888", fontSize: "14.5px", marginBottom: "8px" }}>PNL Hôm nay</p>
+              <p style={{ fontSize: "28px", fontWeight: "700", color: "#0ECB81" }}>+2,847 USDT</p>
+            </div>
+            <TrendingUp size={42} color="#0ECB81" />
+          </div>
+        </div>
+
+        <div style={{
+          backgroundColor: "#0A0A0A",
+          borderRadius: "16px",
+          border: "1px solid #1F1F1F",
+          padding: "24px",
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <p style={{ color: "#888", fontSize: "14.5px", marginBottom: "8px" }}>Số lệnh hôm nay</p>
+              <p style={{ fontSize: "28px", fontWeight: "700" }}>142</p>
+            </div>
+            <Zap size={42} color="#F0B90B" />
+          </div>
+        </div>
+
+        <div style={{
+          backgroundColor: "#0A0A0A",
+          borderRadius: "16px",
+          border: "1px solid #1F1F1F",
+          padding: "24px",
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <p style={{ color: "#888", fontSize: "14.5px", marginBottom: "8px" }}>Win Rate</p>
+              <p style={{ fontSize: "28px", fontWeight: "700", color: "#0ECB81" }}>68.4%</p>
+            </div>
+            <Award size={42} color="#F0B90B" />
+          </div>
+        </div>
+
+        <div style={{
+          backgroundColor: "#0A0A0A",
+          borderRadius: "16px",
+          border: "1px solid #1F1F1F",
+          padding: "24px",
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <p style={{ color: "#888", fontSize: "14.5px", marginBottom: "8px" }}>Cảnh báo giá đang hoạt động</p>
+              <p style={{ fontSize: "28px", fontWeight: "700" }}>12</p>
+            </div>
+            <AlertTriangle size={42} color="#F59E0B" />
+          </div>
+        </div>
+      </div>
 
       <div className="row g-4 mb-3">
         <div className="col-12 col-lg-8">

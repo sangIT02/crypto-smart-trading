@@ -1,6 +1,6 @@
 package com.financial.stockapp.service.Impl;
 
-import com.financial.stockapp.dto.response.PredictionHistoryResponse;
+import com.financial.stockapp.repository.projection.PredictionHistoryResponse;
 import com.financial.stockapp.dto.response.PredictionResponse;
 import com.financial.stockapp.entity.Coin;
 import com.financial.stockapp.entity.Model;
@@ -17,7 +17,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 

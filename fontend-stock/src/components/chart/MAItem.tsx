@@ -14,7 +14,7 @@ function MAItem({ name, maPrice, marketPrice }: { name: string; maPrice: number,
   const getColor = () => {
     if (signal === "Mua Mạnh") return "#00c087";
     if (signal === "Mua") return "#2ecc71";
-    if (signal === "Bán") return "#ff4d4f";
+    if (signal === "Bán Mạnh" || signal === "Bán") return "#ff4d4f";
     return "#999";
   };
 

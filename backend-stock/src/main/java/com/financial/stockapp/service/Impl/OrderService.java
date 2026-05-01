@@ -8,6 +8,8 @@ import com.financial.stockapp.dto.request.OrderRequestDTO;
 import com.financial.stockapp.dto.response.*;
 import com.financial.stockapp.exception.BinanceApiException;
 import com.financial.stockapp.repository.IBinanceAccountRepository;
+import com.financial.stockapp.repository.IOrderRepository;
+import com.financial.stockapp.repository.projection.SymbolOrderProjection;
 import com.financial.stockapp.util.BinanceSignatureUtils;
 import com.financial.stockapp.util.BinanceTimestampUtils;
 import com.financial.stockapp.util.SecurityUtils;
@@ -20,7 +22,9 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -31,6 +35,7 @@ public class OrderService {
     private final AesEncryptionService encryptionService;
     private final BinanceSignatureUtils signatureUtils;
     private final BinanceTimestampUtils timestampUtils;
+    private final IOrderRepository orderRepository;
 
     public ChangeMarginTypeResponse changeMarginType(ChangeMarginTypeRequest request){
         int userID = SecurityUtils.getCurrentUserId();
@@ -304,5 +309,24 @@ public class OrderService {
                 })
                 .bodyToMono(BinanceOrderResponse.class)
                 .block();
+    }
+
+    public List<SymbolOrderDto> getSymbolTotal(){
+        Long totatOrders = orderRepository.getTotalOrders();
+        List<SymbolOrderProjection> top5TotalOrder = orderRepository.getSymbolTotalOrder();
+        Long totalTop5Order = 0L;
+        for (SymbolOrderProjection top5: top5TotalOrder){
+            totalTop5Order += top5.getTotalOrders();
+        }
+        List<SymbolOrderDto> finalData = top5TotalOrder.stream()
+                .map(p -> {
+                    double pct = (p.getTotalOrders()*100)/totatOrders;
+                    return new SymbolOrderDto(p.getSymbol(), pct);
+                })
+                .collect(Collectors.toCollection(ArrayList::new)); // Tạo ArrayList cho phép add()
+
+        Long khac = totatOrders-totalTop5Order;
+        finalData.add(new SymbolOrderDto("Khác",khac*100/totatOrders));
+        return finalData;
     }
 }

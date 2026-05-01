@@ -1,14 +1,12 @@
 package com.financial.stockapp.repository;
 
-import com.financial.stockapp.dto.response.PredictionHistoryResponse;
+import com.financial.stockapp.repository.projection.PredictionHistoryResponse;
 import com.financial.stockapp.entity.Prediction;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
-import java.util.List;
 
 public interface IPredictionRepository extends JpaRepository<Prediction,Long> {
 

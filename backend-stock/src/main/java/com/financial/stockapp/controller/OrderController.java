@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RestController
+@RestController("userOrderController") // Đặt tên Bean riêng
 @RequestMapping("${api.prefix}/order")
 @RequiredArgsConstructor
 public class OrderController {

@@ -1,4 +1,4 @@
-import { Home, TrendingUp, Zap, Wallet, Grid3X3, Bot, PieChart, MessageCircle, Bell, Settings, KeyRound, User, CircleUser } from 'lucide-react'
+import { Home, TrendingUp, Zap, Wallet, Grid3X3, Bot, PieChart, MessageCircle, Bell, Settings, KeyRound, User, CircleUser, LogOut } from 'lucide-react'
 import { href, Link, useLocation } from 'react-router-dom'
 
 const navItems = [
@@ -13,8 +13,7 @@ const navItems = [
     { label: 'Cảnh báo', href: '/alert', icon: Bell },
     { label: 'API & Sàn giao dịch', href: '/apikey', icon: KeyRound,},
     { label: 'Cá nhân', href: '/profile', icon: CircleUser,},
-
-    {label: 'Cài đặt', href:'/setting', icon: Settings}
+    {label: 'Đăng xuất', href:'/setting', icon: LogOut}
 ]
 export function AppSidebar() {
     const location = useLocation()

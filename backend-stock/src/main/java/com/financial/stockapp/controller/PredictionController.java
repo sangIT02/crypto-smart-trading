@@ -1,7 +1,6 @@
 package com.financial.stockapp.controller;
 
-import com.financial.stockapp.dto.ApiResponse;
-import com.financial.stockapp.dto.response.PredictionHistoryResponse;
+import com.financial.stockapp.repository.projection.PredictionHistoryResponse;
 import com.financial.stockapp.dto.response.PredictionResponse;
 import com.financial.stockapp.service.Impl.PredictionService;
 import lombok.RequiredArgsConstructor;

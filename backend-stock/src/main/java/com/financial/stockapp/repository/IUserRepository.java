@@ -1,12 +1,15 @@
 package com.financial.stockapp.repository;
 
-import com.financial.stockapp.dto.response.TotalUserProjection;
+import com.financial.stockapp.repository.projection.TotalUserPermonthDto;
+import com.financial.stockapp.repository.projection.TotalUserProjection;
 import com.financial.stockapp.entity.User;
 import com.financial.stockapp.repository.custom.CustomUserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+
+import java.util.List;
 
 public interface IUserRepository extends JpaRepository<User, Integer>, CustomUserRepository {
     User findUserByEmail(String email);
@@ -42,4 +45,14 @@ public interface IUserRepository extends JpaRepository<User, Integer>, CustomUse
     Page<TotalUserProjection> getAllUser(Pageable pageable);
 
 
+    @Query(value = """
+    SELECT 
+        DATE_FORMAT(created_at, 'Tháng %c') AS month, 
+        COUNT(*) AS total 
+    FROM users 
+    WHERE created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH) -- Nên giới hạn trong 1 năm qua
+    GROUP BY month, DATE_FORMAT(created_at, '%Y-%m') -- Thêm 'month' vào Group by    
+    ORDER BY DATE_FORMAT(created_at, '%Y-%m') ASC
+""", nativeQuery = true)
+    List<TotalUserPermonthDto> getTotalUserPermonth();
 }

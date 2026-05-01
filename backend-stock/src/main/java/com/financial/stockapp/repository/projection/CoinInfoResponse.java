@@ -1,4 +1,4 @@
-package com.financial.stockapp.dto.response;
+package com.financial.stockapp.repository.projection;
 
 public interface CoinInfoResponse {
     Long getId();

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 
 type MessageRole = "assistant" | "user";
 type AssistantStatus = "online" | "thinking" | "idle";
@@ -17,28 +17,27 @@ type SuggestionItem = {
     tag: string;
 };
 
-const INITIAL_MESSAGES: ChatMessage[] = [
-    {
-        id: 1,
-        role: "assistant",
-        content:
-            "Xin chào, tôi là trợ lí giao dịch của Cryptomind. Tôi có thể giúp bạn phân tích xu hướng, gợi ý quản trị rủi ro, kiểm tra tín hiệu hoặc diễn giải dữ liệu bot đang chạy.",
-        timestamp: "09:30",
-    },
-    {
-        id: 2,
-        role: "user",
-        content: "Đánh giá nhanh BTC/USDT hôm nay và vùng giá nào nên chú ý?",
-        timestamp: "09:31",
-    },
-    {
-        id: 3,
-        role: "assistant",
-        content:
-            "BTC/USDT đang phù hợp với kịch bản sideway-biến động. Nên chú ý vùng hỗ trợ gần 68,200 - 68,600 và vùng kháng cự 71,800 - 72,400. Nếu giá giữ được phía trên vùng hỗ trợ, chiến lược pullback sẽ an toàn hơn đuổi breakout.",
-        timestamp: "09:31",
-    },
-];
+//     {
+//         id: 1,
+//         role: "assistant",
+//         content:
+//             "Xin chào, tôi là trợ lí giao dịch của Cryptomind. Tôi có thể giúp bạn phân tích xu hướng, gợi ý quản trị rủi ro, kiểm tra tín hiệu hoặc diễn giải dữ liệu bot đang chạy.",
+//         timestamp: "09:30",
+//     },
+//     {
+//         id: 2,
+//         role: "user",
+//         content: "Đánh giá nhanh BTC/USDT hôm nay và vùng giá nào nên chú ý?",
+//         timestamp: "09:31",
+//     },
+//     {
+//         id: 3,
+//         role: "assistant",
+//         content:
+//             "BTC/USDT đang phù hợp với kịch bản sideway-biến động. Nên chú ý vùng hỗ trợ gần 68,200 - 68,600 và vùng kháng cự 71,800 - 72,400. Nếu giá giữ được phía trên vùng hỗ trợ, chiến lược pullback sẽ an toàn hơn đuổi breakout.",
+//         timestamp: "09:31",
+//     },
+// ];
 
 const SUGGESTIONS: SuggestionItem[] = [
     {
@@ -68,16 +67,15 @@ const SUGGESTIONS: SuggestionItem[] = [
 ];
 
 export const ChatBot = () => {
-    const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState("");
     const [status, setStatus] = useState<AssistantStatus>("online");
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-    const stats = useMemo(() => {
-        return {
-            totalMessages: messages.length,
-            userMessages: messages.filter((m) => m.role === "user").length,
-            assistantMessages: messages.filter((m) => m.role === "assistant").length,
-        };
+    useEffect(() => {
+        if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
     }, [messages]);
 
     function sendMessage(prefilled?: string) {
@@ -125,7 +123,7 @@ export const ChatBot = () => {
                     background: "#000",
                     minHeight: "100vh",
                     color: "#e5e7eb",
-                    padding: "28px 24px",
+                    padding: "15px 24px",
                     margin: "0 auto",
                 }}
             >
@@ -135,7 +133,7 @@ export const ChatBot = () => {
                         alignItems: "flex-start",
                         justifyContent: "space-between",
                         gap: 16,
-                        marginBottom: 20,
+                        marginBottom: 10,
                     }}
                 >
                     <div>
@@ -170,7 +168,7 @@ export const ChatBot = () => {
                     <button
                         type="button"
                         onClick={() => {
-                            setMessages(INITIAL_MESSAGES);
+                            setMessages([]);
                             setInput("");
                             setStatus("idle");
                         }}
@@ -213,7 +211,7 @@ export const ChatBot = () => {
                             borderRadius: 18,
                             overflow: "hidden",
                             boxShadow: "0 0 0 1px rgba(255,255,255,0.015), 0 10px 30px rgba(0,0,0,0.35)",
-                            minHeight: 720,
+                            height: 720,
                             display: "flex",
                             flexDirection: "column",
                         }}
@@ -239,6 +237,7 @@ export const ChatBot = () => {
                         </div>
 
                         <div
+                            ref={messagesContainerRef}
                             style={{
                                 padding: 16,
                                 display: "flex",
@@ -266,7 +265,7 @@ export const ChatBot = () => {
                                 style={{
                                     display: "flex",
                                     gap: 10,
-                                    alignItems: "flex-end",
+                                    alignItems: "center",
                                 }}
                             >
                                 <div

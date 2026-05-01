@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Pagination, ConfigProvider } from "antd";
 import { AddAiModelModal } from "../../components/admin/AddAiModelModal";
-import { manageAIModelService, type AddNewModelData, type AIModel, type TotalModel } from "../../services/manageAIModelService";
+import { manageAIModelService, type AddNewModelData, type AIModel, type TotalModel } from "../../services/admin/manageAIModelService";
 import type { PageData } from "../../services/userService";
 import { formatBinanceTime } from "../../components/position/OpenOrder";
 import { formatDate } from "../../helper/FormatDateTime";

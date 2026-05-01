@@ -1,4 +1,4 @@
-package com.financial.stockapp.dto.response;
+package com.financial.stockapp.repository.projection;
 
 
 import java.time.LocalDateTime;

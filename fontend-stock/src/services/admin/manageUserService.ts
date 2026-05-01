@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getAccessToken } from "./auth";
+import { getAccessToken } from "../auth";
 
 const base_url = "http://localhost:8080/api/admin/user";
 
@@ -28,9 +28,23 @@ export const manageUserService = {
       },
     });
   },
+
+  getUserDataPerMonth: () => {
+    const token = getAccessToken();
+    return axios.get(`${base_url}/total-users`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
 };
 
 export type quantityUser = {
   totalUser: number;
   activateUser: number;
 };
+
+export type UserDataPerMonth = {
+  month: string;
+  total: number;
+}

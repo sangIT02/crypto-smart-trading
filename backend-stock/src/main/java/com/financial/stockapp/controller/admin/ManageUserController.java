@@ -1,13 +1,15 @@
-package com.financial.stockapp.controller;
+package com.financial.stockapp.controller.admin;
 
 import com.financial.stockapp.dto.ApiResponse;
 import com.financial.stockapp.dto.response.CountUserResponse;
-import com.financial.stockapp.dto.response.TotalUserProjection;
+import com.financial.stockapp.repository.projection.TotalUserPermonthDto;
+import com.financial.stockapp.repository.projection.TotalUserProjection;
 import com.financial.stockapp.service.IUserService;
-import com.financial.stockapp.service.Impl.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
@@ -33,5 +35,10 @@ public class ManageUserController {
     public ApiResponse<?> updateUserStatus(@PathVariable int id){
         userService.updateUserStatus(id);
         return ApiResponse.success("cập nhật thành công");
+    }
+
+    @GetMapping("/total-users")
+    public ApiResponse<List<TotalUserPermonthDto>> getTotalUserPerMonth(){
+        return ApiResponse.success(userService.getTotalUserPerMonth());
     }
 }

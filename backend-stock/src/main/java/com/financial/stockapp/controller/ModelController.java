@@ -3,13 +3,12 @@ package com.financial.stockapp.controller;
 
 import com.financial.stockapp.dto.ApiResponse;
 import com.financial.stockapp.dto.request.TrainAcceptedResponseDto;
-import com.financial.stockapp.dto.response.AIModelResponse;
+import com.financial.stockapp.repository.projection.AIModelResponse;
 import com.financial.stockapp.dto.response.TotalAIModelResponse;
 import com.financial.stockapp.entity.Model;
 import com.financial.stockapp.repository.IModelRepository;
 import com.financial.stockapp.service.Impl.AIModelService;
 import com.financial.stockapp.service.Impl.AiServiceClient;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;

@@ -1,6 +1,4 @@
-package com.financial.stockapp.dto.response;
-
-import lombok.*;
+package com.financial.stockapp.repository.projection;
 
 import java.time.LocalDateTime;
 

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Info } from "lucide-react";
-import { manageAIModelService } from "../../services/manageAIModelService";
+import { manageAIModelService } from "../../services/admin/manageAIModelService";
 import { toast } from "react-toastify";
 
 type AddAiModelModalProps = {

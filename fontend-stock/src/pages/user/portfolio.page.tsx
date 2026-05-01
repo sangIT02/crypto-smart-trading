@@ -566,66 +566,7 @@ function AssetRow({ item, totalValue }: { item: AssetItem; totalValue: number })
     );
 }
 
-// ─── AssetsSection ──────────────────────────────────────────────────
-function AssetsSection({ assets }: { assets: AssetItem[] }) {
-    const totalValue = assets.reduce((sum, a) => sum + a.usdtValue, 0);
 
-    const sorted = [...assets].sort((a, b) => b.usdtValue - a.usdtValue);
-
-    return (
-        <div
-            style={{
-                background: 'linear-gradient(180deg, #0b0b0b 0%, #050505 100%)',
-                border: '1px solid #1a1a1a',
-                borderRadius: 16,
-                padding: 16,
-                boxShadow: '0 0 0 1px rgba(255,255,255,0.015)',
-                marginTop: 16,
-            }}
-        >
-            <SectionTitle
-                icon={<WalletIcon />}
-                title="Tài sản"
-                action={
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        {/* Total summary */}
-                        <span style={{ fontSize: 11, color: '#71717a', marginRight: 6 }}>
-                            Tổng:{' '}
-                            <span style={{ color: '#f0b90b', fontWeight: 700 }}>
-                                ${formatPrice(totalValue)}
-                            </span>
-                        </span>
-                    </div>
-                }
-            />
-
-            {/* Table header */}
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: '36px 1fr 1fr 1fr 80px 60px',
-                    gap: 12,
-                    padding: '6px 14px',
-                    marginBottom: 8,
-                }}
-            >
-                {['', 'Coin', 'Số dư', 'Giá trị (USDT)', '24h', 'Tỷ lệ'].map((h) => (
-                    <span key={h} style={{ fontSize: 10, color: '#4b5563', letterSpacing: 1.1, textTransform: 'uppercase', fontWeight: 600 }}>
-                        {h}
-                    </span>
-                ))}
-            </div>
-
-            {/* Rows */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {sorted.map((asset) => (
-                    <AssetRow key={asset.coin} item={asset} totalValue={totalValue} />
-                ))}
-            </div>
-
-        </div>
-    );
-}
 
 export const Portfolio = () => {
     const [activeRange, setActiveRange] = useState<'1D' | '7D' | '30D' | 'ALL'>('7D');
@@ -740,8 +681,6 @@ export const Portfolio = () => {
             </div>
 
 
-            {/* ── Assets Section ── */}
-            <AssetsSection assets={ASSETS} />
         </div>
     );
 };

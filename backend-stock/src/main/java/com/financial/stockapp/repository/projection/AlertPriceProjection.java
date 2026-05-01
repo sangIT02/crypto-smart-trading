@@ -1,6 +1,4 @@
-package com.financial.stockapp.dto.response;
-
-import org.springframework.beans.factory.annotation.Value;
+package com.financial.stockapp.repository.projection;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

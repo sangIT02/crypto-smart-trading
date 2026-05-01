@@ -17,12 +17,11 @@ import AIPredictionPage from "./pages/user/ai-prediction.page";
 import AdminLayout from "./layout/admin/AdminLayout";
 import AdminDashboardPage from "./pages/admin/AdminDashboard";
 import { MonitoringPage } from "./pages/admin/monitoring.page";
-import { SecurityPage } from "./pages/admin/security.page";
 import { NotificationPage } from "./pages/admin/notification.page";
 import { AiModelPage } from "./pages/admin/aimodel.page";
 import { UserPage } from "./pages/admin/user.page";
 import { NotFoundPage } from "./pages/NotFoundPage ";
-
+import { SecurityPage } from "./pages/admin/security.page";
 function App() {
   return (
     <BrowserRouter>

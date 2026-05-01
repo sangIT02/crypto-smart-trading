@@ -1,23 +1,18 @@
 package com.financial.stockapp.service.Impl;
 
 
-import com.financial.stockapp.dto.ErrorResponse;
 import com.financial.stockapp.dto.request.AlertCreateRequest;
-import com.financial.stockapp.dto.response.AlertPriceProjection;
+import com.financial.stockapp.repository.projection.AlertPriceProjection;
 import com.financial.stockapp.dto.response.AlertPriceResponse;
 import com.financial.stockapp.entity.AlertPrice;
-import com.financial.stockapp.entity.enums.ConditionType;
 import com.financial.stockapp.repository.IAlertPriceRepository;
 import com.financial.stockapp.repository.IUserRepository;
 import com.financial.stockapp.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service

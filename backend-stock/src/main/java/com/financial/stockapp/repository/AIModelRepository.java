@@ -1,6 +1,6 @@
 package com.financial.stockapp.repository;
 
-import com.financial.stockapp.dto.response.AIModelResponse;
+import com.financial.stockapp.repository.projection.AIModelResponse;
 import com.financial.stockapp.entity.AiModel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

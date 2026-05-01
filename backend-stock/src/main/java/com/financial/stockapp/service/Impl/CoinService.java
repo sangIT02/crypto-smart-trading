@@ -1,6 +1,6 @@
 package com.financial.stockapp.service.Impl;
 
-import com.financial.stockapp.dto.response.CoinInfoResponse;
+import com.financial.stockapp.repository.projection.CoinInfoResponse;
 import com.financial.stockapp.entity.Coin;
 import com.financial.stockapp.repository.ICoinRepository;
 import lombok.RequiredArgsConstructor;

@@ -1,73 +1,123 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Activity,
-  AlertTriangle,
-  Bell,
-  Bot,
-  Brain,
-  Coins,
-  Shield,
-  TrendingUp,
   Users,
   WalletCards,
+  Shield,
+  TrendingUp,
+  AlertTriangle,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
-type StatItem = {
-  title: string;
-  value: string;
-  change: string;
-  positive: boolean;
-  icon: React.ElementType;
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+} from "recharts";
+import { manageOrderService, type SymbolTotal } from "../../services/admin/manageOrderService";
+import { manageUserService, type UserDataPerMonth } from "../../services/admin/manageUserService";
+
+const CustomPieTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{
+        backgroundColor: "#111",
+        border: "1px solid #333",
+        borderRadius: "8px",
+        padding: "10px 14px",
+        color: "#fff"
+      }}>
+        <p style={{ margin: "0 0 4px 0", fontSize: "14px" }}>
+          {payload[0].payload.symbol}: {payload[0].value}%
+        </p>
+      </div>
+    );
+  }
+  return null;
 };
 
-type TradeItem = {
-  id: string;
-  user: string;
-  pair: string;
-  side: "BUY" | "SELL";
-  type: string;
-  amount: string;
-  status: "Filled" | "Open" | "Cancelled";
-};
-
-type BotItem = {
-  id: string;
-  user: string;
-  strategy: string;
-  pair: string;
-  pnl: string;
-  status: "Running" | "Paused" | "Risk";
-};
-
-type AlertItem = {
-  title: string;
-  detail: string;
-  level: "High" | "Medium" | "Low";
+const CustomBuySellTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{
+        backgroundColor: "#111",
+        border: "1px solid #333",
+        borderRadius: "8px",
+        padding: "10px 14px",
+        color: "#fff"
+      }}>
+        <p style={{ margin: 0, fontSize: "14px" }}>
+          {payload[0].payload.name}: {payload[0].value}
+        </p>
+      </div>
+    );
+  }
+  return null;
 };
 
 export default function AdminDashboardPage() {
-  const stats: StatItem[] = useMemo(
+  const [pairVolumeData, setPairVolumeData] = useState<SymbolTotal[]>([])
+  const [userGrowthData, setUserGrowthData] = useState<UserDataPerMonth[]>([])
+
+  const fetchUserGrowthData = async () => {
+    try {
+      const response = await manageUserService.getUserDataPerMonth();
+      const data:UserDataPerMonth[] = await response.data.data;
+      console.log("User growth data", data);
+      setUserGrowthData(data);
+    } catch (error) {
+      
+    }
+  }
+
+  const fetchSymbolTotal = async () => {
+    try {
+      const response = await manageOrderService.getSymbolTotal();
+      const data = await response.data;
+      console.log("Data", data);
+      setPairVolumeData(data.data);
+    } catch (error) {
+      console.error("Error fetching symbol total:", error);
+    }
+  }
+  useEffect(() => {
+    fetchSymbolTotal();
+    fetchUserGrowthData();
+  }, []);
+
+  const stats = useMemo(
     () => [
       {
-        title: "Người dùng hoạt động",
+        title: "Tổng số người dùng",
         value: "24,892",
-        change: "+8.4%",
+        change: "8.4%",
         positive: true,
         icon: Users,
       },
       {
-        title: "Lệnh toàn hệ thống",
+        title: "Tổng lệnh giao dịch",
         value: "1,284,201",
         change: "+12.1%",
         positive: true,
         icon: WalletCards,
       },
       {
-        title: "Bot/Grid đang chạy",
-        value: "3,482",
-        change: "+5.6%",
+        title: "Tổng số mô hình AI",
+        value: "10",
+        change: "+0",
         positive: true,
-        icon: Bot,
+        icon: TrendingUp,
       },
       {
         title: "Cảnh báo bảo mật",
@@ -77,10 +127,38 @@ export default function AdminDashboardPage() {
         icon: Shield,
       },
     ],
-    []
+    [],
   );
 
-  const recentTrades: TradeItem[] = useMemo(
+  // const pairVolumeData = [
+  //   { name: "BTC/USDT", value: 38, color: "#F7931A" },
+  //   { name: "ETH/USDT", value: 29, color: "#627EEA" },
+  //   { name: "SOL/USDT", value: 14, color: "#14F195" },
+  //   { name: "BNB/USDT", value: 9, color: "#F0B90B" },
+  //   { name: "XRP/USDT", value: 6, color: "#00A2FF" },
+  //   { name: "Khác", value: 4, color: "#6B7280" },
+  // ];
+  const pairVolumeColors = [
+    "#F7931A",
+    "#627EEA",
+    "#14F195",
+    "#F0B90B",
+    "#00A2FF",
+    "#6B7280"
+  ];
+
+  const orderTypeData = [
+    { type: "LONG", count: 45200, fill: "#00C087" },
+    { type: "SHORT", count: 31800, fill: "#F6465D" },
+    { type: "FLAT", count: 12400, fill: "#8B8B8B" },
+  ];
+
+  const buySellData = [
+    { name: "BUY", value: 62, color: "#00C087" },
+    { name: "SELL", value: 38, color: "#F6465D" },
+  ];
+
+  const recentTrades = useMemo(
     () => [
       {
         id: "ORD-90231",
@@ -97,70 +175,32 @@ export default function AdminDashboardPage() {
         pair: "ETH/USDT",
         side: "SELL",
         type: "Limit",
-        amount: "8 ETH",
-        status: "Cancelled",
+        amount: "8.15 ETH",
+        status: "Filled",
       },
       {
         id: "ORD-90233",
         user: "Le Minh C",
         pair: "SOL/USDT",
         side: "BUY",
-        type: "Grid",
+        type: "Market",
         amount: "540 SOL",
-        status: "Open",
+        status: "Filled",
       },
       {
         id: "ORD-90234",
         user: "Pham D",
         pair: "BNB/USDT",
         side: "SELL",
-        type: "Bot",
-        amount: "31 BNB",
-        status: "Filled",
+        type: "Limit",
+        amount: "31.4 BNB",
+        status: "Cancelled",
       },
     ],
-    []
+    [],
   );
 
-  const runningBots: BotItem[] = useMemo(
-    () => [
-      {
-        id: "BOT-103",
-        user: "Nguyen Van A",
-        strategy: "Spot Grid",
-        pair: "BTC/USDT",
-        pnl: "+12.8%",
-        status: "Running",
-      },
-      {
-        id: "BOT-104",
-        user: "Le Minh C",
-        strategy: "Futures Grid",
-        pair: "ETH/USDT",
-        pnl: "+5.3%",
-        status: "Running",
-      },
-      {
-        id: "BOT-105",
-        user: "Tran Thi B",
-        strategy: "DCA Bot",
-        pair: "SOL/USDT",
-        pnl: "-3.1%",
-        status: "Paused",
-      },
-      {
-        id: "BOT-106",
-        user: "Pham D",
-        strategy: "AI Signal Bot",
-        pair: "BNB/USDT",
-        pnl: "-9.7%",
-        status: "Risk",
-      },
-    ],
-    []
-  );
-
-  const securityAlerts: AlertItem[] = useMemo(
+  const securityAlerts = useMemo(
     () => [
       {
         title: "Đăng nhập từ IP bất thường",
@@ -183,188 +223,415 @@ export default function AdminDashboardPage() {
         level: "High",
       },
     ],
-    []
+    [],
   );
 
-  const aiModels = useMemo(
-    () => [
-      { name: "TrendSense v2", status: "Running", accuracy: "87.4%", latency: "118ms" },
-      { name: "Grid Optimizer", status: "Running", accuracy: "91.2%", latency: "92ms" },
-      { name: "Risk Guard", status: "Warning", accuracy: "94.1%", latency: "240ms" },
-      { name: "Signal Fusion", status: "Stopped", accuracy: "--", latency: "--" },
-    ],
-    []
-  );
-
-  const getTextColor = (positive?: boolean) => (positive ? "#00C087" : "#F6465D");
+  const cardStyle = {
+    backgroundColor: "#0A0A0A",
+    borderRadius: "16px",
+    border: "1px solid #1F1F1F",
+    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.4)",
+  };
 
   const getBadgeStyle = (type: string) => {
     switch (type) {
       case "Filled":
-      case "Running":
       case "Low":
         return {
           color: "#00C087",
           backgroundColor: "rgba(0, 192, 135, 0.12)",
-          border: "1px solid rgba(0, 192, 135, 0.2)",
+          border: "1px solid rgba(0, 192, 135, 0.4)",
         };
-      case "Open":
-        return {
-          color: "#3B82F6",
-          backgroundColor: "rgba(59, 130, 246, 0.12)",
-          border: "1px solid rgba(59, 130, 246, 0.2)",
-        };
-      case "Paused":
-      case "Medium":
-      case "Warning":
-        return {
-          color: "#F0B90B",
-          backgroundColor: "rgba(240, 185, 11, 0.12)",
-          border: "1px solid rgba(240, 185, 11, 0.2)",
-        };
-      case "Risk":
-      case "High":
       case "Cancelled":
-      case "Stopped":
+      case "High":
         return {
           color: "#F6465D",
           backgroundColor: "rgba(246, 70, 93, 0.12)",
-          border: "1px solid rgba(246, 70, 93, 0.2)",
+          border: "1px solid rgba(246, 70, 93, 0.4)",
+        };
+      case "Medium":
+        return {
+          color: "#F0B90B",
+          backgroundColor: "rgba(240, 185, 11, 0.12)",
+          border: "1px solid rgba(240, 185, 11, 0.4)",
         };
       default:
         return {
           color: "#9CA3AF",
           backgroundColor: "rgba(156, 163, 175, 0.12)",
-          border: "1px solid rgba(156, 163, 175, 0.2)",
+          border: "1px solid rgba(156, 163, 175, 0.4)",
         };
     }
   };
 
-  const cardStyle: React.CSSProperties = {
-    backgroundColor: "#000000",
-    borderRadius: "12px",
-    border: "1px solid #1a1a1a",
-  };
-
   return (
     <div
-      className="container-fluid py-2"
-      style={{ minHeight: "100vh", backgroundColor: "#000" }}
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#000000",
+        color: "#ffffff",
+        padding: "20px 0",
+      }}
     >
-      <div className="mb-4">
-        <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
-          <div>
-            <h3 className="text-white fw-bold mb-1">Tổng quan hệ thống quản trị</h3>
-            <div className="text-secondary small">
-              Theo dõi người dùng, giao dịch, bot, AI và bảo mật trên toàn hệ thống
-            </div>
-          </div>
-
-          <div className="d-flex flex-wrap gap-2">
-            <button
-              className="btn text-dark fw-semibold"
-              style={{ backgroundColor: "#F0B90B", border: "none" }}
-            >
-              Gửi thông báo
-            </button>
-            <button
-              className="btn text-white"
-              style={{
-                backgroundColor: "#111",
-                border: "1px solid #1f1f1f",
-              }}
-            >
-              Xuất báo cáo
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="row g-3 mb-4">
-        {stats.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div className="col-12 col-sm-6 col-xl-3" key={item.title}>
-              <div className="card p-3 h-100" style={cardStyle}>
-                <div className="d-flex justify-content-between align-items-start">
-                  <div>
-                    <div className="text-secondary small">{item.title}</div>
-                    <div className="text-white fw-bold fs-4 mt-2">{item.value}</div>
+      <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "0 20px" }}>
+        {/* Stats Cards */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "15px",
+            marginBottom: "15px",
+          }}
+        >
+          {stats.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <div key={index} style={cardStyle}>
+                <div style={{ padding: "20px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <div>
+                      <div style={{ color: "#888", fontSize: "14px" }}>
+                        {stat.title}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "32px",
+                          fontWeight: "700",
+                          marginTop: "12px",
+                        }}
+                      >
+                        {stat.value}
+                      </div>
+                    </div>
                     <div
-                      className="small mt-2"
-                      style={{ color: getTextColor(item.positive) }}
+                      style={{
+                        width: "35px",
+                        height: "35px",
+                        backgroundColor: "rgba(240, 185, 11, 0.1)",
+                        borderRadius: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#F0B90B",
+                      }}
                     >
-                      {item.change}
+                      <Icon size={28} />
                     </div>
                   </div>
 
                   <div
-                    className="d-flex align-items-center justify-content-center rounded-circle"
                     style={{
-                      width: 42,
-                      height: 42,
-                      backgroundColor: "rgba(240,185,11,0.12)",
-                      color: "#F0B90B",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      color: stat.positive ? "#00C087" : "#F6465D",
+                      fontSize: "15px",
                     }}
                   >
-                    <Icon size={18} />
+                    {stat.positive ? (
+                      <ArrowUp size={18} />
+                    ) : (
+                      <ArrowDown size={18} />
+                    )}
+                    {stat.change} so với tháng trước
                   </div>
                 </div>
               </div>
+            );
+          })}
+        </div>
+
+        {/* Charts Section */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "2fr 1fr", // ← Đây là phần quan trọng
+            gap: "15px",
+            marginBottom: "15px",
+          }}
+        >
+          {/* User Growth Line Chart */}
+          <div style={cardStyle}>
+            <div
+              style={{
+                padding: "15px 28px",
+                borderBottom: "1px solid #1F1F1F",
+              }}
+            >
+              <h5 style={{ margin: 0, fontSize: "18px", fontWeight: "600" }}>
+                Người dùng hoạt động theo tháng
+              </h5>
             </div>
-          );
-        })}
-      </div>
-
-
-
-      <div className="row g-4 mb-4">
-        <div className="col-12 col-lg-8">
-          <div className="card p-4 h-100" style={cardStyle}>
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5 className="text-white fw-bold mb-0">Giao dịch gần đây</h5>
-              <span className="text-secondary small">Toàn hệ thống</span>
+            <div style={{ padding: "24px", height: "500px" }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={userGrowthData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#222" />
+                  <XAxis dataKey="month" stroke="#555" />
+                  <YAxis stroke="#555" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "#111", border: "none" }}
+                  />
+                  <Line
+                    type="natural"
+                    dataKey="total"
+                    stroke="#F0B90B"
+                    strokeWidth={4}
+                    dot={{ fill: "#F0B90B", r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
+          </div>
 
-            <div className="table-responsive">
-              <table className="table table-dark align-middle mb-0">
+          {/* Pair Volume Pie Chart */}
+          <div style={cardStyle}>
+            <div
+              style={{
+                padding: "15px 28px",
+                borderBottom: "1px solid #1F1F1F",
+              }}
+            >
+              <h5 style={{ margin: 0, fontSize: "18px", fontWeight: "600" }}>
+                Phân bổ cặp giao dịch phổ biến
+              </h5>
+            </div>
+            <div
+              style={{
+                padding: "20px 24px",
+                height: "500px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+              }}
+            >
+              <div style={{ width: "260px", height: "260px" }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={pairVolumeData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={75}
+                      outerRadius={115}
+                      dataKey="totalOrders"
+                    >
+                      {pairVolumeColors.map((color, i) => (
+                        <Cell key={i} fill={color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomPieTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div
+                style={{ marginTop: "24px", width: "100%", maxWidth: "320px" }}
+              >
+                {pairVolumeData.map((item, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "14px",
+                        height: "14px",
+                        backgroundColor: pairVolumeColors[i % pairVolumeColors.length],
+                        borderRadius: "4px",
+                        marginRight: "12px",
+                      }}
+                    />
+                    <span style={{ flex: 1, color: "#ccc" }}>{item.symbol}</span>
+                    <span style={{ fontWeight: "600" }}>{item.totalOrders}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Hourly Volume Area Chart */}
+
+          {/* Order Type Bar Chart */}
+          <div style={cardStyle}>
+            <div
+              style={{
+                padding: "15px 28px",
+                borderBottom: "1px solid #1F1F1F",
+              }}
+            >
+              <h5 style={{ margin: 0, fontSize: "18px", fontWeight: "600" }}>
+                Tỉ lệ dự đoán của AI
+              </h5>
+            </div>
+            <div style={{ padding: "32px", height: "380px" }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={orderTypeData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#222" />
+                  <XAxis dataKey="type" stroke="#555" />
+                  <YAxis stroke="#555" />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#F0B90B" radius={8} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Buy/Sell Pie */}
+          <div style={cardStyle}>
+            <div
+              style={{
+                padding: "15px 28px",
+                borderBottom: "1px solid #1F1F1F",
+              }}
+            >
+              <h5 style={{ margin: 0, fontSize: "18px", fontWeight: "600" }}>
+                Tỷ lệ BUY / SELL
+              </h5>
+            </div>
+            <div style={{ padding: "40px 24px", height: "380px" }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={buySellData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={85}
+                    outerRadius={125}
+                    dataKey="value"
+                  >
+                    {buySellData.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomBuySellTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Trades & Alerts */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "2fr 1fr",
+            gap: "15px",
+          }}
+        >
+          {/* Recent Trades */}
+          <div style={cardStyle}>
+            <div
+              style={{
+                padding: "15px 28px",
+                borderBottom: "1px solid #1F1F1F",
+              }}
+            >
+              <h5 style={{ margin: 0, fontSize: "18px", fontWeight: "600" }}>
+                Giao dịch gần đây
+              </h5>
+            </div>
+            <div style={{ padding: "0 10px" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ color: "#7d8592" }}>
-                    <th className="border-0 bg-transparent">Mã lệnh</th>
-                    <th className="border-0 bg-transparent">Người dùng</th>
-                    <th className="border-0 bg-transparent">Cặp</th>
-                    <th className="border-0 bg-transparent">Loại</th>
-                    <th className="border-0 bg-transparent">Khối lượng</th>
-                    <th className="border-0 bg-transparent">Trạng thái</th>
+                  <tr style={{ color: "#888", borderBottom: "1px solid #222" }}>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        padding: "20px 18px",
+                        fontWeight: "normal",
+                      }}
+                    >
+                      Mã lệnh
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        padding: "20px 18px",
+                        fontWeight: "normal",
+                      }}
+                    >
+                      Người dùng
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        padding: "20px 18px",
+                        fontWeight: "normal",
+                      }}
+                    >
+                      Cặp
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        padding: "20px 18px",
+                        fontWeight: "normal",
+                      }}
+                    >
+                      Loại
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        padding: "20px 18px",
+                        fontWeight: "normal",
+                      }}
+                    >
+                      Khối lượng
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        padding: "20px 18px",
+                        fontWeight: "normal",
+                      }}
+                    >
+                      Trạng thái
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {recentTrades.map((trade) => (
-                    <tr key={trade.id}>
-                      <td style={{ backgroundColor: "transparent" }}>{trade.id}</td>
-                      <td style={{ backgroundColor: "transparent" }}>{trade.user}</td>
-                      <td style={{ backgroundColor: "transparent" }}>{trade.pair}</td>
-                      <td style={{ backgroundColor: "transparent" }}>
-                        <div className="d-flex flex-column">
-                          <span
-                            style={{
-                              color: trade.side === "BUY" ? "#00C087" : "#F6465D",
-                              fontSize: "13px",
-                              fontWeight: 600,
-                            }}
-                          >
-                            {trade.side}
-                          </span>
-                          <span className="text-secondary" style={{ fontSize: "11px" }}>
-                            {trade.type}
-                          </span>
+                  {recentTrades.map((trade, idx) => (
+                    <tr key={idx} style={{ borderBottom: "1px solid #1F1F1F" }}>
+                      <td style={{ padding: "18px", fontFamily: "monospace" }}>
+                        {trade.id}
+                      </td>
+                      <td style={{ padding: "18px" }}>{trade.user}</td>
+                      <td style={{ padding: "18px", fontWeight: "500" }}>
+                        {trade.pair}
+                      </td>
+                      <td style={{ padding: "18px" }}>
+                        <span
+                          style={{
+                            color: trade.side === "BUY" ? "#00C087" : "#F6465D",
+                            fontWeight: "600",
+                          }}
+                        >
+                          {trade.side}
+                        </span>
+                        <div style={{ fontSize: "12px", color: "#666" }}>
+                          {trade.type}
                         </div>
                       </td>
-                      <td style={{ backgroundColor: "transparent" }}>{trade.amount}</td>
-                      <td style={{ backgroundColor: "transparent" }}>
+                      <td style={{ padding: "18px" }}>{trade.amount}</td>
+                      <td style={{ padding: "18px" }}>
                         <span
-                          className="px-2 py-1 rounded"
-                          style={{ ...getBadgeStyle(trade.status), fontSize: "11px" }}
+                          style={{
+                            ...getBadgeStyle(trade.status),
+                            padding: "6px 14px",
+                            borderRadius: "8px",
+                            fontSize: "13px",
+                          }}
                         >
                           {trade.status}
                         </span>
@@ -375,50 +642,69 @@ export default function AdminDashboardPage() {
               </table>
             </div>
           </div>
-        </div>
-        <div className="col-12 col-lg-4">
-          <div className="card p-4 h-100" style={cardStyle}>
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5 className="text-white fw-bold mb-0">Cảnh báo bảo mật</h5>
-              <AlertTriangle size={18} color="#F0B90B" />
-            </div>
 
-            <div className="list-group list-group-flush">
+          {/* Security Alerts */}
+          <div style={cardStyle}>
+            <div
+              style={{
+                padding: "24px 28px",
+                borderBottom: "1px solid #1F1F1F",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+              }}
+            >
+              <AlertTriangle size={22} color="#F0B90B" />
+              <h5 style={{ margin: 0, fontSize: "18px", fontWeight: "600" }}>
+                Cảnh báo bảo mật
+              </h5>
+            </div>
+            <div>
               {securityAlerts.map((alert, index) => (
                 <div
                   key={index}
-                  className="list-group-item bg-transparent border-secondary px-0 py-3"
+                  style={{
+                    padding: "22px 28px",
+                    borderBottom:
+                      index !== securityAlerts.length - 1
+                        ? "1px solid #1F1F1F"
+                        : "none",
+                  }}
                 >
-                  <div className="d-flex justify-content-between align-items-start gap-3">
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      gap: "16px",
+                    }}
+                  >
                     <div>
-                      <div className="text-white small fw-bold">{alert.title}</div>
-                      <div className="text-secondary" style={{ fontSize: "11px" }}>
+                      <div style={{ fontWeight: "500" }}>{alert.title}</div>
+                      <div
+                        style={{
+                          color: "#888",
+                          fontSize: "13px",
+                          marginTop: "4px",
+                        }}
+                      >
                         {alert.detail}
                       </div>
                     </div>
-
-                    <div
-                      className="px-2 py-1 rounded"
-                      style={{ ...getBadgeStyle(alert.level), fontSize: "11px" }}
+                    <span
+                      style={{
+                        ...getBadgeStyle(alert.level),
+                        padding: "5px 12px",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                        whiteSpace: "nowrap",
+                      }}
                     >
                       {alert.level}
-                    </div>
+                    </span>
                   </div>
                 </div>
               ))}
-            </div>
-
-            <div
-              className="mt-3 p-3 rounded"
-              style={{
-                backgroundColor: "rgba(246,70,93,0.08)",
-                border: "1px solid rgba(246,70,93,0.15)",
-              }}
-            >
-              <div className="text-white small fw-semibold mb-1">Lưu ý</div>
-              <div className="text-secondary small">
-                Có 2 cảnh báo mức cao cần admin kiểm tra ngay.
-              </div>
             </div>
           </div>
         </div>

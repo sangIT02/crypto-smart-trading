@@ -2,10 +2,9 @@ package com.financial.stockapp.controller;
 
 import com.financial.stockapp.dto.ApiResponse;
 import com.financial.stockapp.dto.request.AlertCreateRequest;
-import com.financial.stockapp.dto.response.AlertPriceProjection;
+import com.financial.stockapp.repository.projection.AlertPriceProjection;
 import com.financial.stockapp.dto.response.AlertPriceResponse;
-import com.financial.stockapp.dto.response.CoinInfoResponse;
-import com.financial.stockapp.entity.AlertPrice;
+import com.financial.stockapp.repository.projection.CoinInfoResponse;
 import com.financial.stockapp.service.Impl.AlertPriceService;
 import com.financial.stockapp.service.Impl.CoinService;
 import lombok.RequiredArgsConstructor;

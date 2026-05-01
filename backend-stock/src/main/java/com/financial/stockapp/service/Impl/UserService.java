@@ -9,6 +9,9 @@ import com.financial.stockapp.exception.PasswordNotCorrectException;
 import com.financial.stockapp.exception.UserNotFoundException;
 import com.financial.stockapp.repository.IUserLoginHistoryRepository;
 import com.financial.stockapp.repository.IUserRepository;
+import com.financial.stockapp.repository.projection.LoginHistoryProjection;
+import com.financial.stockapp.repository.projection.TotalUserPermonthDto;
+import com.financial.stockapp.repository.projection.TotalUserProjection;
 import com.financial.stockapp.service.IUserService;
 import com.financial.stockapp.util.JwtUtils;
 import com.financial.stockapp.util.SecurityUtils;
@@ -118,16 +121,15 @@ public class UserService implements IUserService {
         return new CountUserResponse(totalUser,activeUser);
     }
 
-    public Page<TotalUserProjection> getAllUsers(int page,int size){
+    public Page<TotalUserProjection> getAllUsers(int page, int size){
         Pageable pageable = PageRequest.of(page,size);
         Page<TotalUserProjection> response = userRepository.getAllUser(pageable);
         return response;
     }
 
 
-    @Transactional // Rất quan trọng khi có Update dữ liệu
+    @Transactional
     public void updateUserStatus(int userId) {
-        // 1. Tìm user và quăng lỗi luôn nếu không thấy (code rút gọn cực kỳ thanh lịch)
         User user = userRepository.findById((long) userId);
         if(user == null) throw new UserNotFoundException("");
         // 2. Chống lỗi NullPointerException nếu isActive đang là null trong DB
@@ -135,9 +137,11 @@ public class UserService implements IUserService {
 
         // 3. Đảo ngược trạng thái và set lại
         user.setIsActive(!currentStatus);
-
-        // 4. Lưu vào DB
         userRepository.save(user);
+    }
+
+    public List<TotalUserPermonthDto> getTotalUserPerMonth(){
+        return userRepository.getTotalUserPermonth();
     }
 
 }
