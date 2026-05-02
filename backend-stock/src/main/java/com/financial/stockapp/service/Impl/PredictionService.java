@@ -1,5 +1,6 @@
 package com.financial.stockapp.service.Impl;
 
+import com.financial.stockapp.dto.response.TotalOrderTypeResponse;
 import com.financial.stockapp.repository.projection.PredictionHistoryResponse;
 import com.financial.stockapp.dto.response.PredictionResponse;
 import com.financial.stockapp.entity.Coin;
@@ -55,7 +56,7 @@ public class PredictionService {
                 .currentPrice(new BigDecimal(currentPrice))
                 .predictedPrice(BigDecimal.valueOf(response.getPredictedPrice()))
                 .changePct(new BigDecimal(response.getChangePercent()))
-                .signal(response.getSignal())
+                .signal_ai(response.getSignal())
                 .confidence(new BigDecimal(response.getConfidence()))
                 .isCorrect(0)
                 .build();
@@ -67,5 +68,9 @@ public class PredictionService {
     public Page<PredictionHistoryResponse> getHistory(int coinId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return predictionRepository.getHistory(coinId, pageable);
+    }
+
+    public List<TotalOrderTypeResponse> getTotalOrdertype(){
+        return predictionRepository.getTotalOrderType();
     }
 }

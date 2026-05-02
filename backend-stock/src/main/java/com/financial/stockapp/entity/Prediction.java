@@ -40,7 +40,7 @@ public class Prediction {
     private BigDecimal changePct;
 
     @Column(name = "signal_ai",nullable = false, length = 10)
-    private String signal; // 'BUY', 'SELL', 'HOLD'
+    private String signal_ai; // 'BUY', 'SELL', 'HOLD'
 
     @Column(precision = 5, scale = 2)
     private BigDecimal confidence;

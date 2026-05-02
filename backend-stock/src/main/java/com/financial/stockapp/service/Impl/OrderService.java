@@ -10,6 +10,7 @@ import com.financial.stockapp.exception.BinanceApiException;
 import com.financial.stockapp.repository.IBinanceAccountRepository;
 import com.financial.stockapp.repository.IOrderRepository;
 import com.financial.stockapp.repository.projection.SymbolOrderProjection;
+import com.financial.stockapp.repository.projection.TotalBuySellProjection;
 import com.financial.stockapp.util.BinanceSignatureUtils;
 import com.financial.stockapp.util.BinanceTimestampUtils;
 import com.financial.stockapp.util.SecurityUtils;
@@ -328,5 +329,9 @@ public class OrderService {
         Long khac = totatOrders-totalTop5Order;
         finalData.add(new SymbolOrderDto("Khác",khac*100/totatOrders));
         return finalData;
+    }
+
+    public List<TotalBuySellProjection> getTotalBuySell(){
+        return orderRepository.getTotalBuySell();
     }
 }

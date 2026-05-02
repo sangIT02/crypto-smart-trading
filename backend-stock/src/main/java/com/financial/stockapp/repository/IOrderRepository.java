@@ -1,7 +1,9 @@
 package com.financial.stockapp.repository;
 
+import com.financial.stockapp.dto.response.TotalBuySellResponse;
 import com.financial.stockapp.entity.Order;
 import com.financial.stockapp.repository.projection.SymbolOrderProjection;
+import com.financial.stockapp.repository.projection.TotalBuySellProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -26,4 +28,25 @@ public interface IOrderRepository extends JpaRepository<Order, Integer> {
         from orders
 """, nativeQuery = true)
     Long getTotalOrders();
+
+    @Query("""
+    SELECT 
+        'BUY' as name,
+        ROUND(
+            COUNT(CASE WHEN o.side = 'BUY' THEN 1 END) * 100.0 / COUNT(*), 2
+        ) as value
+    FROM Order o
+    WHERE o.status = 'FILLED'
+    
+    UNION ALL
+    
+    SELECT 
+        'SELL' as name,
+        ROUND(
+            COUNT(CASE WHEN o.side = 'SELL' THEN 1 END) * 100.0 / COUNT(*), 2
+        ) as value
+    FROM Order o
+    WHERE o.status = 'FILLED'
+    """)
+    List<TotalBuySellProjection> getTotalBuySell();
 }

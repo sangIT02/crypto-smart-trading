@@ -12,10 +12,22 @@ export const manageOrderService = {
       }
     })
   },
+
+  getTotalTypeOrder(){
+    return axios.get(`${base_url}/total-buy-sell`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    })
+  },
 }
 
 export type SymbolTotal = {
   symbol: string;
   totalOrders: number;
   color?: string;
+}
+export type TotalTypeOrder = {
+  name: string;
+  value: number;
 }

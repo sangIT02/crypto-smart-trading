@@ -2,6 +2,7 @@ package com.financial.stockapp.controller.admin;
 
 import com.financial.stockapp.dto.ApiResponse;
 import com.financial.stockapp.dto.response.SymbolOrderDto;
+import com.financial.stockapp.repository.projection.TotalBuySellProjection;
 import com.financial.stockapp.service.Impl.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,5 +20,10 @@ public class OrderController {
     @GetMapping("/symbol-total")
     public ApiResponse<List<SymbolOrderDto>> getSymbolTotalOrder(){
         return ApiResponse.success(orderService.getSymbolTotal());
+    }
+
+    @GetMapping("/total-buy-sell")
+    public ApiResponse<List<TotalBuySellProjection>> getTotalBuySell(){
+        return ApiResponse.success(orderService.getTotalBuySell());
     }
 }

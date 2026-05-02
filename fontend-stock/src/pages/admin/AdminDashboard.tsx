@@ -25,19 +25,32 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-import { manageOrderService, type SymbolTotal } from "../../services/admin/manageOrderService";
-import { manageUserService, type UserDataPerMonth } from "../../services/admin/manageUserService";
+import {
+  manageOrderService,
+  type SymbolTotal,
+  type TotalTypeOrder,
+} from "../../services/admin/manageOrderService";
+import {
+  manageUserService,
+  type UserDataPerMonth,
+} from "../../services/admin/manageUserService";
+import {
+  managePredictService,
+  type TotalOrderTypeResponse,
+} from "../../services/admin/managePredictService";
 
 const CustomPieTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div style={{
-        backgroundColor: "#111",
-        border: "1px solid #333",
-        borderRadius: "8px",
-        padding: "10px 14px",
-        color: "#fff"
-      }}>
+      <div
+        style={{
+          backgroundColor: "#111",
+          border: "1px solid #333",
+          borderRadius: "8px",
+          padding: "10px 14px",
+          color: "#fff",
+        }}
+      >
         <p style={{ margin: "0 0 4px 0", fontSize: "14px" }}>
           {payload[0].payload.symbol}: {payload[0].value}%
         </p>
@@ -50,13 +63,15 @@ const CustomPieTooltip = ({ active, payload }: any) => {
 const CustomBuySellTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div style={{
-        backgroundColor: "#111",
-        border: "1px solid #333",
-        borderRadius: "8px",
-        padding: "10px 14px",
-        color: "#fff"
-      }}>
+      <div
+        style={{
+          backgroundColor: "#111",
+          border: "1px solid #333",
+          borderRadius: "8px",
+          padding: "10px 14px",
+          color: "#fff",
+        }}
+      >
         <p style={{ margin: 0, fontSize: "14px" }}>
           {payload[0].payload.name}: {payload[0].value}
         </p>
@@ -67,19 +82,20 @@ const CustomBuySellTooltip = ({ active, payload }: any) => {
 };
 
 export default function AdminDashboardPage() {
-  const [pairVolumeData, setPairVolumeData] = useState<SymbolTotal[]>([])
-  const [userGrowthData, setUserGrowthData] = useState<UserDataPerMonth[]>([])
-
+  const [pairVolumeData, setPairVolumeData] = useState<SymbolTotal[]>([]);
+  const [userGrowthData, setUserGrowthData] = useState<UserDataPerMonth[]>([]);
+  const [orderTypeData, setOrderTypeData] = useState<TotalOrderTypeResponse[]>(
+    [],
+  );
+  const [buySellData, setBuySellData] = useState<TotalTypeOrder[]>([]);
   const fetchUserGrowthData = async () => {
     try {
       const response = await manageUserService.getUserDataPerMonth();
-      const data:UserDataPerMonth[] = await response.data.data;
+      const data: UserDataPerMonth[] = await response.data.data;
       console.log("User growth data", data);
       setUserGrowthData(data);
-    } catch (error) {
-      
-    }
-  }
+    } catch (error) {}
+  };
 
   const fetchSymbolTotal = async () => {
     try {
@@ -90,10 +106,35 @@ export default function AdminDashboardPage() {
     } catch (error) {
       console.error("Error fetching symbol total:", error);
     }
-  }
+  };
+
+  const fetchOrderTypeData = async () => {
+    try {
+      const response = await managePredictService.getTotalOrderType();
+      const data: TotalOrderTypeResponse[] = await response.data.data;
+      console.log("Data", data);
+      setOrderTypeData(data);
+    } catch (error) {
+      console.error("Error fetching order type data:", error);
+    }
+  };
+
+  const fetchBuySellData = async () => {
+    try {
+      const response = await manageOrderService.getTotalTypeOrder();
+      const data: TotalTypeOrder[] = await response.data.data;
+      console.log("Buy/Sell data", data);
+      setBuySellData(data);
+    } catch (error) {
+      console.error("Error fetching buy/sell data:", error);
+    }
+  };
+
   useEffect(() => {
     fetchSymbolTotal();
     fetchUserGrowthData();
+    fetchOrderTypeData();
+    fetchBuySellData();
   }, []);
 
   const stats = useMemo(
@@ -130,33 +171,28 @@ export default function AdminDashboardPage() {
     [],
   );
 
-  // const pairVolumeData = [
-  //   { name: "BTC/USDT", value: 38, color: "#F7931A" },
-  //   { name: "ETH/USDT", value: 29, color: "#627EEA" },
-  //   { name: "SOL/USDT", value: 14, color: "#14F195" },
-  //   { name: "BNB/USDT", value: 9, color: "#F0B90B" },
-  //   { name: "XRP/USDT", value: 6, color: "#00A2FF" },
-  //   { name: "Khác", value: 4, color: "#6B7280" },
-  // ];
   const pairVolumeColors = [
     "#F7931A",
     "#627EEA",
     "#14F195",
     "#F0B90B",
     "#00A2FF",
-    "#6B7280"
+    "#6B7280",
   ];
+  const orderTypeColors = {
+    LONG: "#00C087",
+    SHORT: "#F6465D",
+    FLAT: "#8B8B8B",
+  };
+  const buySellColors = {
+    BUY: "#00C087",
+    SELL: "#F6465D",
+  };
 
-  const orderTypeData = [
-    { type: "LONG", count: 45200, fill: "#00C087" },
-    { type: "SHORT", count: 31800, fill: "#F6465D" },
-    { type: "FLAT", count: 12400, fill: "#8B8B8B" },
-  ];
-
-  const buySellData = [
-    { name: "BUY", value: 62, color: "#00C087" },
-    { name: "SELL", value: 38, color: "#F6465D" },
-  ];
+  // const buySellData = [
+  //   { name: "BUY", value: 62,},
+  //   { name: "SELL", value: 38},
+  // ];
 
   const recentTrades = useMemo(
     () => [
@@ -446,13 +482,18 @@ export default function AdminDashboardPage() {
                       style={{
                         width: "14px",
                         height: "14px",
-                        backgroundColor: pairVolumeColors[i % pairVolumeColors.length],
+                        backgroundColor:
+                        pairVolumeColors[i % pairVolumeColors.length],
                         borderRadius: "4px",
                         marginRight: "12px",
                       }}
                     />
-                    <span style={{ flex: 1, color: "#ccc" }}>{item.symbol}</span>
-                    <span style={{ fontWeight: "600" }}>{item.totalOrders}%</span>
+                    <span style={{ flex: 1, color: "#ccc" }}>
+                      {item.symbol}
+                    </span>
+                    <span style={{ fontWeight: "600" }}>
+                      {item.totalOrders}%
+                    </span>
                   </div>
                 ))}
               </div>
@@ -480,7 +521,18 @@ export default function AdminDashboardPage() {
                   <XAxis dataKey="type" stroke="#555" />
                   <YAxis stroke="#555" />
                   <Tooltip />
-                  <Bar dataKey="count" fill="#F0B90B" radius={8} />
+                  <Bar dataKey="count" radius={8}>
+                    {orderTypeData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={
+                          orderTypeColors[
+                            entry.type as keyof typeof orderTypeColors
+                          ] || "#F0B90B"
+                        }
+                      />
+                    ))}
+                  </Bar>{" "}
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -510,7 +562,7 @@ export default function AdminDashboardPage() {
                     dataKey="value"
                   >
                     {buySellData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
+                      <Cell key={i} fill={buySellColors[entry.name as keyof typeof buySellColors]} />
                     ))}
                   </Pie>
                   <Tooltip content={<CustomBuySellTooltip />} />
