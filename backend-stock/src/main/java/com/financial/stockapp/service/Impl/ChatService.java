@@ -6,6 +6,7 @@ import com.financial.stockapp.component.DatabaseChatMemory;
 import com.financial.stockapp.dto.request.AnalyzeRequest;
 import com.financial.stockapp.dto.request.FunctionDataRequest.MarketPriceRequest;
 import com.financial.stockapp.dto.response.AnalyzeResponse;
+import com.financial.stockapp.dto.response.ChatResponse;
 import com.financial.stockapp.system_prompts.SystemPrompt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +20,9 @@ import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.function.FunctionToolCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -85,7 +88,7 @@ public class ChatService {
         }
     }
 
-    public String chatWithIntent(String sessionId, String userMessage) {
+    public ChatResponse chatWithIntent(String sessionId, String userMessage) {
         // 1. AI "gác cổng" phân loại xem user đang hỏi về cái gì
         String intent = chatRouterService.routerAI(userMessage);
         log.info("Detected Intent: {}", intent);
@@ -101,12 +104,19 @@ public class ChatService {
         };
 
         // 3. Thực hiện chat với System Prompt đã chọn
-        return chatClient.prompt()
+        String response =  chatClient.prompt()
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, sessionId))
                 .system(selectedSystemPrompt) // Nạp "nhân cách" chuyên gia vào đây
                 .user(userMessage)
                 .toolCallbacks(tradingTools)
                 .call()
                 .content();
+        return ChatResponse.builder()
+                .sessionId(sessionId)
+                .assistantMessage(response)
+                .userMessage(userMessage)
+                .timestamp(LocalDateTime.now())
+                .build();
     }
+
 }

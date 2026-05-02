@@ -52,12 +52,12 @@ spring:
           writetimeout: 5000
   ai:
     openai:
-      api-key: ${GEMINI_KEY} #${GROQ_KEY} #
-      base-url: https://generativelanguage.googleapis.com/v1beta/openai #https://api.groq.com/openai #
+      api-key:  ${GROQ_KEY} #${GEMINI_KEY}
+      base-url:  https://api.groq.com/openai #https://generativelanguage.googleapis.com/v1beta/openai
       chat:
         #completions-path: /v1beta/openai/chat/completions groq không cần
         options:
-          model: gemini-2.5-flash-lite #llama-3.1-8b-instant #
+          model:  llama-3.1-8b-instant #gemini-2.5-flash
 #gemini-3-flash-preview
 #gemini-2.5-flash-lite
 #gemini-2.5-flash
