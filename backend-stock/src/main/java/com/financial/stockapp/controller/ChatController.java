@@ -16,13 +16,13 @@ import reactor.core.publisher.Flux;
 import java.util.UUID;
 
 @RestController
-@RequestMapping
+@RequestMapping("${api.prefix}/chat")
 @RequiredArgsConstructor
 public class ChatController {
 
     private final ChatService chatService;
 
-    @PostMapping("/chat")
+    @PostMapping("/predict")
     public AnalyzeResponse chat(@RequestBody AnalyzeRequest request){
         return chatService.analyzePredict(request);
     }

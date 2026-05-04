@@ -2,33 +2,35 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Badge } from "antd";
 import { Bell, Search, Moon, Sun } from "lucide-react";
 
-type HeaderTickerItem = {
-    label: string;
-    value: string;
-    positive?: boolean;
+type LiveTickerItem = {
+    symbol: string;
+    lastPrice: number;
+    priceChange: number;
+    priceChangePercent: number;
 };
-
-const TICKER_ITEMS: HeaderTickerItem[] = [
-    { label: "BTC", value: "69,850  +2.14%", positive: true },
-    { label: "ETH", value: "3,515  -0.84%", positive: false },
-    { label: "OI", value: "+3.2%", positive: true },
-    { label: "Funding", value: "+0.0100%", positive: true },
-    { label: "F&G", value: "68" },
-    { label: "SOL", value: "3,515  -0.84%", positive: false },
-
-    { label: "DOGE", value: "3,515  -0.84%", positive: false },
-
-    { label: "LINK", value: "3,515  -0.84%", positive: false },
-
-    { label: "UNI", value: "3,515  -0.84%", positive: false },
-
-];
 
 export function AppHeader() {
     const [dark, setDark] = useState(true);
     const [now, setNow] = useState(new Date());
+    const [ticker, setTicker] = useState<LiveTickerItem[]>();
+
+    const fetchTicker = () => {
+        fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22,%22BNBUSDT%22,%22SOLUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22DOGEUSDT%22,%22SHIBUSDT%22,%22AVAXUSDT%22,%22DOTUSDT%22]")
+            .then((res) => res.json())
+            .then((data) => {
+                const tickerData = data.map((item: any) => ({
+                    symbol: item.symbol,
+                    lastPrice: parseFloat(item.lastPrice),
+                    priceChange: parseFloat(item.priceChange),
+                    priceChangePercent: parseFloat(item.priceChangePercent)
+                }));
+                setTicker(tickerData);
+                console.log(tickerData);
+            });
+    };
 
     useEffect(() => {
+        fetchTicker();
         const timer = setInterval(() => {
             setNow(new Date());
         }, 1000);
@@ -74,7 +76,7 @@ export function AppHeader() {
                     justifyContent: 'space-between'
                 }}
             >
-                <div style={{ flex: 1, maxWidth: 420 }}>
+                {/* <div style={{ flex: 1, maxWidth: 420 }}>
                     <div
                         style={{
                             display: "flex",
@@ -100,13 +102,13 @@ export function AppHeader() {
                             placeholder="Tìm kiếm coin, tín hiệu, chiến lược..."
                         />
                     </div>
-                </div>
+                </div> */}
 
                 <div
                     style={{
                         flex: 1,
                         minWidth: 280,
-                        maxWidth: 700,
+                        maxWidth: 1200,
                         overflow: "hidden",
                     }}
                 >
@@ -160,44 +162,45 @@ export function AppHeader() {
                                     alignItems: "center",
                                     width: "max-content",
                                     gap: 14,
-                                    animation: "ticker-scroll 18s linear infinite",
+                                    animation: ticker && ticker.length > 0 ? "ticker-scroll 18s linear infinite" : "none",
                                 }}
                             >
-                                {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, index) => (
-                                    <div
-                                        key={`${item.label}-${index}`}
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 6,
-                                            flexShrink: 0,
-                                        }}
-                                    >
-                                        <span
-                                            style={{
-                                                color: "#fafafa",
-                                                fontSize: 11,
-                                                fontWeight: 700,
-                                            }}
-                                        >
-                                            {item.label}
-                                        </span>
-                                        <span
-                                            style={{
-                                                color:
-                                                    item.positive === undefined
-                                                        ? "#9ca3af"
-                                                        : item.positive
-                                                            ? "#0ECB81"
-                                                            : "#F6465D",
-                                                fontSize: 11,
-                                                fontWeight: 600,
-                                            }}
-                                        >
-                                            {item.value}
-                                        </span>
-                                    </div>
-                                ))}
+                                {ticker && ticker.length > 0
+                                    ? [...ticker, ...ticker].map((item, index) => {
+                                        const symbolName = item.symbol.replace('USDT', '');
+                                        const isPositive = item.priceChangePercent >= 0;
+                                        return (
+                                            <div
+                                                key={`${item.symbol}-${index}`}
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 6,
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        color: "#fafafa",
+                                                        fontSize: 11,
+                                                        fontWeight: 700,
+                                                    }}
+                                                >
+                                                    {symbolName}
+                                                </span>
+                                                <span
+                                                    style={{
+                                                        color: isPositive ? "#0ECB81" : "#F6465D",
+                                                        fontSize: 11,
+                                                        fontWeight: 600,
+                                                    }}
+                                                >
+                                                    {item.lastPrice.toFixed(2)} {isPositive ? '+' : ''}{item.priceChangePercent.toFixed(2)}%
+                                                </span>
+                                            </div>
+                                        );
+                                    })
+                                    : "Đang tải dữ liệu..."}
                             </div>
                         </div>
                     </div>

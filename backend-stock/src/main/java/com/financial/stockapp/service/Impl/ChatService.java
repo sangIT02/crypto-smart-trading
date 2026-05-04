@@ -18,11 +18,13 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.function.FunctionToolCallback;
+import org.springframework.ai.tool.method.MethodToolCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -88,29 +90,90 @@ public class ChatService {
         }
     }
 
+//    public ChatResponse chatWithIntent(String sessionId, String userMessage) {
+//        // 1. AI "gác cổng" phân loại xem user đang hỏi về cái gì
+//        String intent = chatRouterService.routerAI(userMessage);
+//        log.info("Detected Intent: {}", intent);
+//
+//        // 2. Chọn bản Prompt chi tiết dựa trên Intent (Lấy từ SystemPrompt của bạn)
+//        String selectedSystemPrompt = switch (intent) {
+//            case "MARKET" -> SystemPrompt.MARKET_ANALYSIS_PROMPT;
+//            case "STRATEGY" -> SystemPrompt.STRATEGY_ANALYSIS_PROMPT;
+//            case "RISK" -> SystemPrompt.RISK_ANALYSIS_PROMPT;
+//            case "TRADE" -> SystemPrompt.TRADE_ANALYSIS_PROMPT;
+//            case "INFO" -> SystemPrompt.INFO_ANALYSIS_PROMPT;
+//            default -> SystemPrompt.CRYPTO_BASE_PROMPT;
+//        };
+//
+//        // 3. Thực hiện chat với System Prompt đã chọn
+//        String response =  chatClient.prompt()
+//                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, sessionId))
+//                .system(selectedSystemPrompt) // Nạp "nhân cách" chuyên gia vào đây
+//                .user(userMessage)
+//                .toolCallbacks(tradingTools)
+//                .call()
+//                .content();
+//        return ChatResponse.builder()
+//                .sessionId(sessionId)
+//                .assistantMessage(response)
+//                .userMessage(userMessage)
+//                .timestamp(LocalDateTime.now())
+//                .build();
+//    }
+
     public ChatResponse chatWithIntent(String sessionId, String userMessage) {
-        // 1. AI "gác cổng" phân loại xem user đang hỏi về cái gì
         String intent = chatRouterService.routerAI(userMessage);
         log.info("Detected Intent: {}", intent);
 
-        // 2. Chọn bản Prompt chi tiết dựa trên Intent (Lấy từ SystemPrompt của bạn)
-        String selectedSystemPrompt = switch (intent) {
-            case "MARKET" -> SystemPrompt.MARKET_ANALYSIS_PROMPT;
-            case "STRATEGY" -> SystemPrompt.STRATEGY_ANALYSIS_PROMPT;
-            case "RISK" -> SystemPrompt.RISK_ANALYSIS_PROMPT;
-            case "TRADE" -> SystemPrompt.TRADE_ANALYSIS_PROMPT;
-            case "INFO" -> SystemPrompt.INFO_ANALYSIS_PROMPT;
-            default -> SystemPrompt.CRYPTO_BASE_PROMPT;
-        };
-
-        // 3. Thực hiện chat với System Prompt đã chọn
-        String response =  chatClient.prompt()
+        // 2. Khai báo biến lưu Prompt và danh sách Tools
+        String selectedSystemPrompt;
+        List<String> requiredToolNames = new ArrayList<>();        // 3. Xử lý logic gán Prompt và Tools theo Intent
+        switch (intent) {
+            case "MARKET" -> {
+                selectedSystemPrompt = SystemPrompt.MARKET_ANALYSIS_PROMPT;
+                requiredToolNames.add("getBinancePrice");
+            }
+            case "RISK" -> {
+                selectedSystemPrompt = SystemPrompt.RISK_ANALYSIS_PROMPT;
+                requiredToolNames.add("getAccountBalance");
+                requiredToolNames.add("getUserPositions");
+                requiredToolNames.add("getBinancePrice");
+            }
+            case "TRADE" -> {
+                selectedSystemPrompt = SystemPrompt.TRADE_ANALYSIS_PROMPT;
+                requiredToolNames.add("getBinancePrice");
+                requiredToolNames.add("getAccountBalance");
+                requiredToolNames.add("getUserPositions");            }
+            case "STRATEGY" -> {
+                selectedSystemPrompt = SystemPrompt.STRATEGY_ANALYSIS_PROMPT;
+                requiredToolNames.add("getBinancePrice");
+                requiredToolNames.add("getAccountBalance");
+            }
+            case "INFO" -> {
+                selectedSystemPrompt = SystemPrompt.INFO_ANALYSIS_PROMPT;
+                requiredToolNames.add("getAccountBalance");
+            }
+            default -> {
+                selectedSystemPrompt = SystemPrompt.CRYPTO_BASE_PROMPT;
+            }
+        }
+        List<ToolCallback> activeTools = tradingTools.stream()
+                .filter(tool -> requiredToolNames.contains(tool.getToolDefinition().name()))
+                .toList();
+        // 4. Khởi tạo Chat Spec
+        var promptSpec = chatClient.prompt()
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, sessionId))
-                .system(selectedSystemPrompt) // Nạp "nhân cách" chuyên gia vào đây
-                .user(userMessage)
-                .toolCallbacks(tradingTools)
-                .call()
-                .content();
+                .system(selectedSystemPrompt)
+                .user(userMessage);
+
+        // 5. Inject động các Tool (Chỉ thêm khi mảng có dữ liệu)
+        if (!activeTools.isEmpty()) {
+            promptSpec.toolCallbacks(activeTools.toArray(new ToolCallback[0]));
+        }
+
+        // 6. Thực thi gọi API
+        String response = promptSpec.call().content();
+
         return ChatResponse.builder()
                 .sessionId(sessionId)
                 .assistantMessage(response)

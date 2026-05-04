@@ -80,7 +80,7 @@ export default function RiskDrawer({ open, onClose, prediction,result, setResult
         try {
             setLoading(true); // 🔥 set trước khi gọi API
             const accessToken = getAccessToken();
-            const url = `http://localhost:8080/chat`;
+            const url = `http://localhost:8080/api/chat/predict`;
     
             const body = {
                 prediction: prediction,

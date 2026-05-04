@@ -1,4 +1,6 @@
 import React, { useMemo, useState, useRef, useEffect } from "react";
+import { chatService, type ChatResponse } from "../../services/chatService";
+import AiMessage from "../../components/AiMessage";
 
 type MessageRole = "assistant" | "user";
 type AssistantStatus = "online" | "thinking" | "idle";
@@ -49,7 +51,7 @@ const SUGGESTIONS: SuggestionItem[] = [
     {
         id: 2,
         title: "Kiểm tra rủi ro lệnh",
-        prompt: "Tôi muốn vào lệnh ETH/USDT, giúp tôi tính rủi ro nếu stoploss 3% và vốn 1000 USDT.",
+        prompt: "Tôi muốn vào lệnh BTC/USDT, giúp tôi tính rủi ro nếu stoploss 3% và vốn 1000 USDT.",
         tag: "Risk",
     },
     {
@@ -60,9 +62,21 @@ const SUGGESTIONS: SuggestionItem[] = [
     },
     {
         id: 4,
-        title: "Đọc tín hiệu bot",
-        prompt: "Giải thích cho tôi tín hiệu hiện tại của bot và trạng thái nên tiếp tục hay tạm dừng.",
-        tag: "Bot",
+        title: "Tin tức thị trường",
+        prompt: "Cung cấp cho tôi những tin tức quan trọng nhất về thị trường crypto trong ngày hôm nay.",
+        tag: "News",
+    },
+    {
+        id: 5,
+        title: "Dòng tiền lớn",
+        prompt: "Cung cấp cho tôi những thông tin về dòng tiền lớn trong thị trường crypto trong ngày hôm nay.",
+        tag: "News",
+    },
+    {
+        id: 6,
+        title: "Tình hình vị thế của tôi",
+        prompt: "Cung cấp cho tôi thông tin về tình hình vị thế của tôi trong thị trường crypto trong ngày hôm nay.",
+        tag: "Info",
     },
 ];
 
@@ -71,50 +85,55 @@ export const ChatBot = () => {
     const [input, setInput] = useState("");
     const [status, setStatus] = useState<AssistantStatus>("online");
     const messagesContainerRef = useRef<HTMLDivElement>(null);
-
+    const [sessionId, setSessionId] = useState<string | null>(null);
     useEffect(() => {
         if (messagesContainerRef.current) {
             messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
         }
     }, [messages]);
 
-    function sendMessage(prefilled?: string) {
-        const text = (prefilled ?? input).trim();
-        if (!text) return;
+    async function sendMessage(currentSessionId: string | null, messageContent: string) {
+    if (!messageContent.trim()) return;
 
-        const now = new Date();
-        const time = now.toLocaleTimeString("vi-VN", {
-            hour: "2-digit",
-            minute: "2-digit",
-        });
+    // 1. Tạo object tin nhắn của User và đưa vào state ngay lập tức
+    const userMessage: ChatMessage = {
+        id: Date.now(),
+        role: "user",
+        content: messageContent,
+        timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+    };
 
-        const userMessage: ChatMessage = {
-            id: Date.now(),
-            role: "user",
-            content: text,
-            timestamp: time,
+    setMessages((prev) => [...prev, userMessage]);
+    setInput(""); // Xóa trắng ô input
+    setStatus("thinking"); // Chuyển trạng thái sang đang suy nghĩ
+
+    try {
+        // 2. Gọi API lên Backend
+        const response = await chatService.ask(currentSessionId, messageContent);
+        const messageResponse: ChatResponse = response.data; 
+
+        // Lưu lại sessionId cho các lượt chat sau
+        setSessionId(messageResponse.sessionId);
+
+        // 3. Tạo object tin nhắn của AI từ dữ liệu Backend trả về
+        const aiMessage: ChatMessage = {
+            id: Date.now() + 1,
+            role: "assistant",
+            content: messageResponse.assistantMessage,
+            // Format lại thời gian từ Backend (nếu cần) hoặc dùng giờ local
+            timestamp: new Date(messageResponse.timestamp || Date.now()).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
         };
 
-        setMessages((prev) => [...prev, userMessage]);
-        setInput("");
-        setStatus("thinking");
+        // 4. Thêm tin nhắn của AI vào state để UI render
+        setMessages((prev) => [...prev, aiMessage]);
 
-        setTimeout(() => {
-            const reply: ChatMessage = {
-                id: Date.now() + 1,
-                role: "assistant",
-                content:
-                    "Tôi đã nhận câu hỏi của bạn. Với tình huống này, bạn nên kết hợp xu hướng chính, khối lượng, vùng hỗ trợ/kháng cự và mức rủi ro tối đa trước khi vào lệnh. Nếu cần, tôi có thể tiếp tục tách ra thành kịch bản buy, sell và quản trị vốn cụ thể.",
-                timestamp: new Date().toLocaleTimeString("vi-VN", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                }),
-            };
-
-            setMessages((prev) => [...prev, reply]);
-            setStatus("online");
-        }, 900);
+    } catch (error) {
+        console.error("Error sending message:", error);
+        // Tùy chọn: Thêm một tin nhắn báo lỗi vào UI ở đây nếu muốn
+    } finally {
+        setStatus("online"); // Gọi API xong thì trả về trạng thái online
     }
+}
 
     return (
             <div
@@ -123,7 +142,7 @@ export const ChatBot = () => {
                     background: "#000",
                     minHeight: "100vh",
                     color: "#e5e7eb",
-                    padding: "15px 24px",
+                    padding: "5px 24px",
                     margin: "0 auto",
                 }}
             >
@@ -136,7 +155,7 @@ export const ChatBot = () => {
                         marginBottom: 10,
                     }}
                 >
-                    <div>
+                    {/* <div>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                             <BotRoundIcon />
                             <span
@@ -163,9 +182,9 @@ export const ChatBot = () => {
                         >
                             Trợ lí giao dịch
                         </h1>
-                    </div>
+                    </div> */}
 
-                    <button
+                    {/* <button
                         type="button"
                         onClick={() => {
                             setMessages([]);
@@ -193,7 +212,7 @@ export const ChatBot = () => {
                     >
                         <span style={{ fontSize: 16, lineHeight: 1 }}>↺</span>
                         Cuộc trò chuyện mới
-                    </button>
+                    </button> */}
                 </div>
 
                 <div
@@ -227,13 +246,43 @@ export const ChatBot = () => {
                             }}
                         >
                             <div>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa", marginBottom: 4 }}>Phiên trò chuyện</div>
+                                <div className="d-flex align-items-center" style={{ fontSize: 13, fontWeight: 700, color: "#fafafa", marginBottom: 4 }}>
+                                    <div className="me-2">Phiên trò chuyện</div>
+                                    <AssistantStatusPill status={status} /></div>
                                 <div style={{ fontSize: 11, color: "#71717a", lineHeight: 1.6 }}>
                                     Bạn có thể hỏi về trend, entry, risk hoặc chiến lược bot.
                                 </div>
                             </div>
-
-                            <AssistantStatusPill status={status} />
+                        
+                        <button
+                        type="button"
+                        onClick={() => {
+                            setMessages([]);
+                            setInput("");
+                            setStatus("idle");
+                        }}
+                        style={{
+                            flexShrink: 0,
+                            padding: "12px 16px",
+                            borderRadius: 12,
+                            cursor: "pointer",
+                            background: "linear-gradient(180deg, #f0b90b 0%, #c9920a 100%)",
+                            border: "1px solid #e0ae10",
+                            color: "#111",
+                            fontSize: 13,
+                            fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+                            fontWeight: 700,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 8,
+                            boxShadow: "0 8px 22px rgba(240,185,11,0.16)",
+                            marginTop: 2,
+                        }}
+                    >
+                        <span style={{ fontSize: 16, lineHeight: 1 }}>↺</span>
+                        Cuộc trò chuyện mới``
+                    </button>
                         </div>
 
                         <div
@@ -299,7 +348,7 @@ export const ChatBot = () => {
 
                                 <button
                                     type="button"
-                                    onClick={() => sendMessage()}
+                                    onClick={() => sendMessage(sessionId, input)}
                                     disabled={!input.trim()}
                                     style={{
                                         width: 48,
@@ -325,8 +374,6 @@ export const ChatBot = () => {
                     </div>
 
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-
                         <div
                             style={{
                                 background: "linear-gradient(180deg, #0b0b0b 0%, #050505 100%)",
@@ -343,7 +390,7 @@ export const ChatBot = () => {
                                     <button
                                         key={item.id}
                                         type="button"
-                                        onClick={() => sendMessage(item.prompt)}
+                                        onClick={() => sendMessage(sessionId, item.prompt)}
                                         style={{
                                             textAlign: "left",
                                             background: "#070707",
@@ -369,41 +416,6 @@ export const ChatBot = () => {
                                         <div style={{ fontSize: 11, color: "#8b8f97", lineHeight: 1.7 }}>{item.prompt}</div>
                                     </button>
                                 ))}
-                            </div>
-                        </div>
-
-                        <div
-                            style={{
-                                background: "linear-gradient(180deg, #0b0b0b 0%, #050505 100%)",
-                                border: "1px solid #1a1a1a",
-                                borderRadius: 18,
-                                padding: 16,
-                                boxShadow: "0 0 0 1px rgba(255,255,255,0.015)",
-                            }}
-                        >
-                            <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa", marginBottom: 12 }}>Khả năng hỗ trợ</div>
-
-                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                                <FeatureRow title="Trend Analysis" desc="Đánh giá xu hướng ngắn hạn và vùng giá quan trọng." />
-                                <FeatureRow title="Risk Management" desc="Gợi ý stoploss, risk per trade và quản trị vốn." />
-                                <FeatureRow title="Grid Setup" desc="Đề xuất khoảng giá, số grid và logic phù hợp sideway." />
-                                <FeatureRow title="Bot Review" desc="Diễn giải trạng thái bot, tín hiệu và hiệu suất hiện tại." />
-                            </div>
-                        </div>
-
-                        <div
-                            style={{
-                                padding: "14px 16px",
-                                borderRadius: 14,
-                                background: "linear-gradient(180deg, #0a0a0a 0%, #050505 100%)",
-                                border: "1px solid #1a1a1a",
-                                display: "flex",
-                                gap: 12,
-                            }}
-                        >
-                            <span style={{ fontSize: 16, flexShrink: 0 }}>🧠</span>
-                            <div style={{ fontSize: 11, color: "#8b8f97", lineHeight: 1.8 }}>
-                                Trợ lí giao dịch chỉ nên đóng vai trò hỗ trợ phân tích và ra quyết định. Không nên xem đây là khuyến nghị đầu tư tuyệt đối.
                             </div>
                         </div>
                     </div>
@@ -477,12 +489,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
     const isUser = message.role === "user";
 
     return (
-        <div
-            style={{
-                display: "flex",
-                justifyContent: isUser ? "flex-end" : "flex-start",
-            }}
-        >
+        <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start" }}>
             <div
                 style={{
                     maxWidth: "82%",
@@ -510,7 +517,14 @@ function MessageBubble({ message }: { message: ChatMessage }) {
                     <div style={{ fontSize: 10, color: "#6b7280" }}>{message.timestamp}</div>
                 </div>
 
-                <div style={{ fontSize: 13, color: "#e5e7eb", lineHeight: 1.75, whiteSpace: "pre-wrap" }}>{message.content}</div>
+                {/* === PHẦN QUAN TRỌNG: Render Markdown cho AI === */}
+                {isUser ? (
+                    <div style={{ fontSize: 14, color: "#e5e7eb", lineHeight: 1.70, whiteSpace: "pre-wrap" }}>
+                        {message.content}
+                    </div>
+                ) : (
+                    <AiMessage content={message.content} />
+                )}
             </div>
         </div>
     );
