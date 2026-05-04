@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { portfolioService, type FuturesBalanceResponse } from '../../services/portfolioService';
 import axios from 'axios';
+import { positionService, type PositionDTO } from '../../services/positionService';
+import EquityChart from '../../components/chart/EquityChart';
 
 type PositionSide = 'LONG' | 'SHORT';
 
@@ -23,15 +25,6 @@ type EquityPoint = {
     value: number;
 };
 
-type AssetItem = {
-    coin: string;
-    name: string;
-    balance: number;
-    usdtValue: number;
-    change24h: number;
-    price: number;
-    icon: string;
-};
 
 const EQUITY_DATA: EquityPoint[] = [
     { label: '01', value: 10120 },
@@ -41,6 +34,23 @@ const EQUITY_DATA: EquityPoint[] = [
     { label: '05', value: 10540 },
     { label: '06', value: 10920 },
     { label: '07', value: 11240 },
+    { label: '08', value: 11010 },
+    { label: '09', value: 11450 },
+    { label: '10', value: 11320 },
+    { label: '11', value: 11680 },
+    { label: '12', value: 11540 },
+    { label: '13', value: 11820 },
+    { label: '14', value: 11710 },
+    { label: '15', value: 12050 },
+    { label: '16', value: 11920 },
+    { label: '17', value: 12240 },
+    { label: '18', value: 12110 },
+    { label: '19', value: 12450 },
+    { label: '20', value: 12320 },
+    { label: '21', value: 12680 },
+    { label: '22', value: 12540 },
+    { label: '23', value: 12820 },
+    { label: '24', value: 12710 },
 ];
 
 const POSITIONS: PositionItem[] = [
@@ -70,86 +80,8 @@ const POSITIONS: PositionItem[] = [
         unrealizedPnl: 72,
         roe: 8.57,
     },
-    {
-        id: 3,
-        symbol: 'SOL/USDT',
-        side: 'LONG',
-        size: 18,
-        entryPrice: 182.4,
-        markPrice: 179.8,
-        liquidationPrice: 154.2,
-        margin: 620,
-        leverage: 6,
-        unrealizedPnl: -46.8,
-        roe: -7.55,
-    },
 ];
 
-const ASSETS: AssetItem[] = [
-    {
-        coin: 'BTC',
-        name: 'Bitcoin',
-        balance: 0.3842,
-        usdtValue: 26842.15,
-        change24h: 2.34,
-        price: 69874.2,
-        icon: '₿',
-    },
-    {
-        coin: 'USDT',
-        name: 'Tether',
-        balance: 4218.6,
-        usdtValue: 4218.6,
-        change24h: 0.01,
-        price: 1.0,
-        icon: '₮',
-    },
-    {
-        coin: 'ETH',
-        name: 'Ethereum',
-        balance: 2.145,
-        usdtValue: 7541.18,
-        change24h: -1.12,
-        price: 3515.0,
-        icon: 'Ξ',
-    },
-    {
-        coin: 'SOL',
-        name: 'Solana',
-        balance: 42.8,
-        usdtValue: 7695.44,
-        change24h: -2.87,
-        price: 179.8,
-        icon: '◎',
-    },
-    {
-        coin: 'BNB',
-        name: 'BNB',
-        balance: 5.72,
-        usdtValue: 3422.86,
-        change24h: 0.95,
-        price: 598.4,
-        icon: 'B',
-    },
-    {
-        coin: 'USDC',
-        name: 'USD Coin',
-        balance: 1500.0,
-        usdtValue: 1500.0,
-        change24h: 0.0,
-        price: 1.0,
-        icon: '$',
-    },
-];
-
-const COIN_COLORS: Record<string, string> = {
-    BTC: '#f0b90b',
-    USDT: '#26a17b',
-    ETH: '#627eea',
-    SOL: '#9945ff',
-    BNB: '#f0b90b',
-    USDC: '#2775ca',
-};
 
 function formatPrice(value: number, digits = 2) {
     return new Intl.NumberFormat('en-US', {
@@ -298,10 +230,26 @@ function MiniInfo({ label, value }: { label: string; value: string }) {
         </div>
     );
 }
+``
+function PositionCard({ item }: { item: PositionDTO }) {
+    // 1. Ép kiểu và tính toán các giá trị cơ bản
+    const unRealizedProfit = Number(item.unRealizedProfit);
+    const positive = unRealizedProfit >= 0;
+    
+    // Binance One-way mode trả về "BOTH", nên check Long/Short qua positionAmt sẽ chuẩn nhất
+    const isLong = Number(item.positionAmt) > 0; 
+    
+    const leverage = Number(item.leverage);
+    const notionalSize = Math.abs(Number(item.notional)); // Notional của lệnh Short bị âm, cần lấy trị tuyệt đối
+    const liqPrice = Number(item.liquidationPrice);
 
-function PositionCard({ item }: { item: PositionItem }) {
-    const positive = item.unrealizedPnl >= 0;
-    const long = item.side === 'LONG';
+    // 2. Tính Margin đã sử dụng (Giống logic bảng Table)
+    const marginUsed = item.marginType === 'isolated' 
+        ? Number(item.isolatedMargin) 
+        : notionalSize / leverage;
+
+    // 3. Tính ROE %
+    const roe = marginUsed > 0 ? (unRealizedProfit / marginUsed) * 100 : 0;
 
     return (
         <div
@@ -329,13 +277,13 @@ function PositionCard({ item }: { item: PositionItem }) {
                                 fontSize: 10,
                                 padding: '4px 8px',
                                 borderRadius: 999,
-                                background: long ? 'rgba(14,203,129,0.08)' : 'rgba(246,70,93,0.08)',
-                                border: `1px solid ${long ? 'rgba(14,203,129,0.22)' : 'rgba(246,70,93,0.22)'}`,
-                                color: long ? '#0ecb81' : '#f6465d',
+                                background: isLong ? 'rgba(14,203,129,0.08)' : 'rgba(246,70,93,0.08)',
+                                border: `1px solid ${isLong ? 'rgba(14,203,129,0.22)' : 'rgba(246,70,93,0.22)'}`,
+                                color: isLong ? '#0ecb81' : '#f6465d',
                                 fontWeight: 700,
                             }}
                         >
-                            {item.side}
+                            {isLong ? 'LONG' : 'SHORT'}
                         </span>
                         <span
                             style={{
@@ -351,74 +299,86 @@ function PositionCard({ item }: { item: PositionItem }) {
                             {item.leverage}x
                         </span>
                     </div>
-                    <div style={{ fontSize: 11, color: '#71717a' }}>Size: {formatPrice(item.size, 3)}</div>
+                    <div style={{ fontSize: 11, color: '#71717a' }}>
+                        Size: {formatPrice(notionalSize, 2)}
+                    </div>
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: positive ? '#0ecb81' : '#f6465d' }}>
-                        {formatMoney(item.unrealizedPnl)}
+                        {positive ? '' : ''}{formatMoney(unRealizedProfit)}
                     </div>
                     <div style={{ fontSize: 11, color: positive ? '#0ecb81' : '#f6465d', marginTop: 4 }}>
-                        ROE {item.roe >= 0 ? '+' : ''}{formatPrice(item.roe)}%
+                        ROE {roe >= 0 ? '+' : ''}{formatPrice(roe)}%
                     </div>
                 </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
-                <MiniInfo label="Entry Price" value={`$${formatPrice(item.entryPrice)}`} />
-                <MiniInfo label="Mark Price" value={`$${formatPrice(item.markPrice)}`} />
-                <MiniInfo label="Liquidation" value={`$${formatPrice(item.liquidationPrice)}`} />
-                <MiniInfo label="Margin" value={`${formatPrice(item.margin)} USDT`} />
-                <MiniInfo label="PnL" value={formatMoney(item.unrealizedPnl)} />
-                <MiniInfo label="ROE" value={`${item.roe >= 0 ? '+' : ''}${formatPrice(item.roe)}%`} />
+                <MiniInfo label="Entry Price" value={`$${formatPrice(Number(item.entryPrice))}`} />
+                <MiniInfo label="Mark Price" value={`$${formatPrice(Number(item.markPrice))}`} />
+                {/* Nếu giá thanh lý = 0 thì hiển thị '--' cho giống UI Binance */}
+                <MiniInfo 
+                    label="Liquidation" 
+                    value={liqPrice > 0 ? `$${formatPrice(Number(liqPrice))}` : '--'} 
+                />
+                <MiniInfo label="Margin" value={`${formatPrice(marginUsed)} USDT`} />
+                <MiniInfo 
+                    label="PnL" 
+                    value={`${positive ? '+' : ''}${formatMoney(unRealizedProfit)}`} 
+                />
+                <MiniInfo 
+                    label="ROE" 
+                    value={`${roe >= 0 ? '+' : ''}${formatPrice(roe)}%`} 
+                />
             </div>
         </div>
     );
 }
 
-function EquityChart({ data }: { data: EquityPoint[] }) {
-    const max = Math.max(...data.map((d) => d.value));
-    const min = Math.min(...data.map((d) => d.value));
-    const points = data
-        .map((d, i) => {
-            const x = (i / (data.length - 1)) * 100;
-            const y = 100 - ((d.value - min) / (max - min || 1)) * 100;
-            return `${x},${y}`;
-        })
-        .join(' ');
+// function EquityChart({ data }: { data: EquityPoint[] }) {
+//     const max = Math.max(...data.map((d) => d.value));
+//     const min = Math.min(...data.map((d) => d.value));
+//     const points = data
+//         .map((d, i) => {
+//             const x = (i / (data.length - 1)) * 100;
+//             const y = 100 - ((d.value - min) / (max - min || 1)) * 100;
+//             return `${x},${y}`;
+//         })
+//         .join(' ');
 
-    return (
-        <div
-            style={{
-                background: '#070707',
-                border: '1px solid #171717',
-                borderRadius: 14,
-                padding: 14,
-            }}
-        >
-            <div style={{ height: 220, width: '100%', position: 'relative' }}>
-                <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
-                    <defs>
-                        <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="rgba(240,185,11,0.25)" />
-                            <stop offset="100%" stopColor="rgba(240,185,11,0.02)" />
-                        </linearGradient>
-                    </defs>
-                    {[20, 40, 60, 80].map((line) => (
-                        <line key={line} x1="0" y1={line} x2="100" y2={line} stroke="#171717" strokeWidth="0.8" />
-                    ))}
-                    <polyline fill="url(#equityFill)" stroke="none" points={`0,100 ${points} 100,100`} />
-                    <polyline fill="none" stroke="#f0b90b" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" points={points} />
-                </svg>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, gap: 8 }}>
-                {data.map((d) => (
-                    <span key={d.label} style={{ fontSize: 11, color: '#71717a' }}>{d.label}</span>
-                ))}
-            </div>
-        </div>
-    );
-}
+//     return (
+//         <div
+//             style={{
+//                 background: '#070707',
+//                 border: '1px solid #171717',
+//                 borderRadius: 14,
+//                 padding: 14,
+//             }}
+//         >
+//             <div style={{ height: 220, width: '100%', position: 'relative' }}>
+//                 <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+//                     <defs>
+//                         <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
+//                             <stop offset="0%" stopColor="rgba(240,185,11,0.25)" />
+//                             <stop offset="100%" stopColor="rgba(240,185,11,0.02)" />
+//                         </linearGradient>
+//                     </defs>
+//                     {[20, 40, 60, 80].map((line) => (
+//                         <line key={line} x1="0" y1={line} x2="100" y2={line} stroke="#171717" strokeWidth="0.8" />
+//                     ))}
+//                     <polyline fill="url(#equityFill)" stroke="none" points={`0,100 ${points} 100,100`} />
+//                     <polyline fill="none" stroke="#f0b90b" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" points={points} />
+//                 </svg>
+//             </div>
+//             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, gap: 8 }}>
+//                 {data.map((d) => (
+//                     <span key={d.label} style={{ fontSize: 11, color: '#71717a' }}>{d.label}</span>
+//                 ))}
+//             </div>
+//         </div>
+//     );
+// }
 
 function AllocationBar({ label, value, color }: { label: string; value: number; color: string }) {
     return (
@@ -460,118 +420,26 @@ function MiniSparkline({ positive }: { positive: boolean }) {
     );
 }
 
-// ─── CoinIcon ──────────────────────────────────────────────────────
-function CoinIcon({ coin, icon }: { coin: string; icon: string }) {
-    const color = COIN_COLORS[coin] ?? '#6b7280';
-    return (
-        <div
-            style={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                background: `radial-gradient(circle at 35% 35%, ${color}33, ${color}11)`,
-                border: `1.5px solid ${color}44`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 15,
-                fontWeight: 800,
-                color: color,
-                flexShrink: 0,
-                letterSpacing: -0.5,
-            }}
-        >
-            {icon}
-        </div>
-    );
-}
 
-// ─── AssetRow ──────────────────────────────────────────────────────
-function AssetRow({ item, totalValue }: { item: AssetItem; totalValue: number }) {
-    const positive = item.change24h >= 0;
-    const pct = (item.usdtValue / totalValue) * 100;
-    const color = COIN_COLORS[item.coin] ?? '#6b7280';
 
-    return (
-        <div
-            style={{
-                display: 'grid',
-                gridTemplateColumns: '36px 1fr 1fr 1fr 80px 60px',
-                alignItems: 'center',
-                gap: 12,
-                padding: '12px 14px',
-                borderRadius: 12,
-                background: '#070707',
-                border: '1px solid #131313',
-                transition: 'border-color 0.15s',
-            }}
-        >
-            {/* Icon */}
-            <CoinIcon coin={item.coin} icon={item.icon} />
-
-            {/* Coin name */}
-            <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#f3f4f6', marginBottom: 2 }}>{item.coin}</div>
-                <div style={{ fontSize: 11, color: '#6b7280' }}>{item.name}</div>
-            </div>
-
-            {/* Balance */}
-            <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#e5e7eb' }}>
-                    {formatPrice(item.balance, item.balance < 10 ? 4 : 2)}
-                </div>
-                <div style={{ fontSize: 11, color: '#6b7280' }}>{item.coin}</div>
-            </div>
-
-            {/* USDT Value */}
-            <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#fafafa' }}>
-                    ${formatPrice(item.usdtValue)}
-                </div>
-                <div style={{ fontSize: 11, color: '#6b7280' }}>
-                    @ ${item.price >= 1000 ? formatPrice(item.price, 0) : formatPrice(item.price, 4)}
-                </div>
-            </div>
-
-            {/* Sparkline + change */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                <MiniSparkline positive={positive} />
-                <span
-                    style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: positive ? '#0ecb81' : '#f6465d',
-                    }}
-                >
-                    {positive ? '+' : ''}{formatPrice(item.change24h)}%
-                </span>
-            </div>
-
-            {/* Allocation bar */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-                <span style={{ fontSize: 10, color: '#71717a' }}>{formatPrice(pct, 1)}%</span>
-                <div style={{ width: 52, height: 4, background: '#1a1a1a', borderRadius: 999 }}>
-                    <div
-                        style={{
-                            width: `${Math.min(pct, 100)}%`,
-                            height: '100%',
-                            background: color,
-                            borderRadius: 999,
-                            opacity: 0.85,
-                        }}
-                    />
-                </div>
-            </div>
-        </div>
-    );
-}
 
 
 
 export const Portfolio = () => {
     const [activeRange, setActiveRange] = useState<'1D' | '7D' | '30D' | 'ALL'>('7D');
     const [data,setData] = useState<FuturesBalanceResponse>()
+    const [positionData, setPositionData] = useState<PositionDTO[]>([]);
+    const fetchPositions = async () => {
+        try {
+            const response = await positionService.getPositions();
+            const data:PositionDTO[] = await response.data;
+            setPositionData(data);
+        } catch (error) {
+            console.error('Error fetching positions:', error);
+        }
+    }
     useEffect(() => {
+        fetchPositions();
         const fetchBalance = async () => {
             const response = await portfolioService.getBalance()
             const rs = await response.data.data
@@ -583,15 +451,15 @@ export const Portfolio = () => {
 
 
     const exposure = useMemo(() => {
-        const total = POSITIONS.reduce((sum, p) => sum + Math.abs(p.margin), 0) || 1;
-        const bySymbol = POSITIONS.map((p) => ({
+        const total = positionData.reduce((sum, p) => sum + Math.abs(Number(p.positionAmt)), 0) || 1;
+        const bySymbol = positionData.map((p) => ({
             label: p.symbol,
-            value: (Math.abs(p.margin) / total) * 100,
+            value: 99,
         }));
-        const longValue = POSITIONS.filter((p) => p.side === 'LONG').reduce((sum, p) => sum + p.margin, 0);
-        const shortValue = POSITIONS.filter((p) => p.side === 'SHORT').reduce((sum, p) => sum + p.margin, 0);
+        const longValue = positionData.filter((p) => p.positionSide === 'LONG').reduce((sum, p) => sum + Number(p.positionAmt), 0);
+        const shortValue = positionData.filter((p) => p.positionSide === 'SHORT').reduce((sum, p) => sum + Number(p.positionAmt), 0);
         return { bySymbol, longPct: (longValue / total) * 100, shortPct: (shortValue / total) * 100 };
-    }, []);
+    }, [positionData]);
 
     return (
         <div
@@ -654,19 +522,20 @@ export const Portfolio = () => {
                             </div>
                         }
                     />
-                    <EquityChart data={EQUITY_DATA} />
+                <EquityChart data={EQUITY_DATA} />
                 </div>
 
                 <div style={{ background: 'linear-gradient(180deg, #0b0b0b 0%, #050505 100%)', border: '1px solid #1a1a1a', borderRadius: 16, padding: 16, boxShadow: '0 0 0 1px rgba(255,255,255,0.015)', display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <SectionTitle icon={<RiskIcon />} title="Thường giao dịch" />
+                    
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         {exposure.bySymbol.map((item, index) => (
                             <AllocationBar key={item.label} label={item.label} value={item.value} color={['#f0b90b', '#60a5fa', '#0ecb81', '#f6465d'][index % 4]} />
                         ))}
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginTop: 4 }}>
-                        <MiniInfo label="Long Exposure" value={`${formatPrice(exposure.longPct)}%`} />
-                        <MiniInfo label="Short Exposure" value={`${formatPrice(exposure.shortPct)}%`} />
+                        <MiniInfo label="Long Exposure" value={`${formatPrice(Number(exposure.longPct))}%`} />
+                        <MiniInfo label="Short Exposure" value={`${formatPrice(Number(exposure.shortPct))}%`} />
                     </div>
                 </div>
             </div>
@@ -674,8 +543,8 @@ export const Portfolio = () => {
             <div style={{ background: 'linear-gradient(180deg, #0b0b0b 0%, #050505 100%)', border: '1px solid #1a1a1a', borderRadius: 16, padding: 16, boxShadow: '0 0 0 1px rgba(255,255,255,0.015)', marginBottom: 16 }}>
                 <SectionTitle icon={<PositionIcon />} title="Open Positions" />
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
-                    {POSITIONS.map((item) => (
-                        <PositionCard key={item.id} item={item} />
+                    {positionData.map((item) => (
+                        <PositionCard key={item.symbol} item={item} />
                     ))}
                 </div>
             </div>

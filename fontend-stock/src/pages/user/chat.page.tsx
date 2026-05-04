@@ -281,7 +281,7 @@ export const ChatBot = () => {
                         }}
                     >
                         <span style={{ fontSize: 16, lineHeight: 1 }}>↺</span>
-                        Cuộc trò chuyện mới``
+                        Cuộc trò chuyện mới
                     </button>
                         </div>
 

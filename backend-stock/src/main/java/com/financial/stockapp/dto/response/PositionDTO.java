@@ -2,7 +2,7 @@ package com.financial.stockapp.dto.response;
 
 public record PositionDTO(
         String symbol,
-        String positionSide, // Có thể cân nhắc tạo Enum cho "BOTH", "LONG", "SHORT"
+        String positionSide,
         String positionAmt,
         String entryPrice,
         String breakEvenPrice,
@@ -11,14 +11,12 @@ public record PositionDTO(
         String liquidationPrice,
         String isolatedMargin,
         String notional,
-        String marginAsset,
         String isolatedWallet,
-        String initialMargin,
-        String maintMargin,
-        String positionInitialMargin,
-        String openOrderInitialMargin,
-        int adl,
-        String bidNotional,
-        String askNotional,
-        long updateTime
+        long updateTime,
+
+        // --- Các trường bổ sung đặc trưng của V2 ---
+        String leverage,           // Đòn bẩy hiện tại (Ví dụ: "10")
+        String marginType,         // "isolated" hoặc "cross"
+        String isAutoAddMargin,    // "true" hoặc "false"
+        String maxNotionalValue    // Giá trị vị thế tối đa được phép ở mức leverage này
 ) {}

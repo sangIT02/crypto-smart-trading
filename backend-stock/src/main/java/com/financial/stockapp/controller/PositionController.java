@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -19,7 +20,14 @@ public class PositionController {
     @GetMapping("all")
     public ResponseEntity<List<PositionDTO>> getAllPosition(){
         List<PositionDTO> response = positionService.getAllPosition();
-        return ResponseEntity.ok(response);
+        List<PositionDTO> activePositions = response.stream()
+                .filter(pos -> {
+                    // Chuyển string sang double để so sánh an toàn
+                    double amount = Double.parseDouble(pos.positionAmt());
+                    return amount != 0.0;
+                })
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(activePositions);
     }
     @PostMapping("close")
     public ResponseEntity<ListOrderResponse> closePosition(@RequestBody ClosePositionRequest request){

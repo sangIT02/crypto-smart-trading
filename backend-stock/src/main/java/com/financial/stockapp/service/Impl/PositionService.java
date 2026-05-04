@@ -44,7 +44,7 @@ public class PositionService {
 
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
-                        .path("/fapi/v3/positionRisk")
+                        .path("/fapi/v2/positionRisk")
                         .queryParam("timestamp",timestamp)
                         .queryParam("signature", signature)
                         .build())

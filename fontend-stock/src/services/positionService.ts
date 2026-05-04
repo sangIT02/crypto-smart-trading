@@ -30,20 +30,10 @@ export type ClosePositionRequest = {
 }
 
 
-
-
-
-
-
-
-
-
-
-
 export type PositionSide = 'BOTH' | 'LONG' | 'SHORT';
 export type PositionDTO = {
   symbol: string;
-  positionSide: PositionSide;
+  positionSide: PositionSide; // "BOTH" | "LONG" | "SHORT"
   positionAmt: string;
   entryPrice: string;
   breakEvenPrice: string;
@@ -52,14 +42,12 @@ export type PositionDTO = {
   liquidationPrice: string;
   isolatedMargin: string;
   notional: string;
-  marginAsset: string;
   isolatedWallet: string;
-  initialMargin: string;
-  maintMargin: string;
-  positionInitialMargin: string;
-  openOrderInitialMargin: string;
-  adl: number;
-  bidNotional: string;
-  askNotional: string;
-  updateTime: number; // Thời gian trả về dạng timestamp millis
+  updateTime: number;
+
+  // --- Các trường bổ sung từ bản V2 ---
+  leverage: string;            // Đòn bẩy hiện tại (ví dụ: "10")
+  marginType: string;          // "isolated" hoặc "cross"
+  isAutoAddMargin: string;     // "true" hoặc "false"
+  maxNotionalValue: string;    // Giá trị vị thế tối đa được phép ở mức leverage này
 };

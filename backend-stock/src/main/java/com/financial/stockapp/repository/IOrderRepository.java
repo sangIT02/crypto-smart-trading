@@ -1,11 +1,13 @@
 package com.financial.stockapp.repository;
 
+import com.financial.stockapp.dto.response.RecentTradingPairDto;
 import com.financial.stockapp.dto.response.TotalBuySellResponse;
 import com.financial.stockapp.entity.Order;
 import com.financial.stockapp.repository.projection.SymbolOrderProjection;
 import com.financial.stockapp.repository.projection.TotalBuySellProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -49,4 +51,17 @@ public interface IOrderRepository extends JpaRepository<Order, Integer> {
     WHERE o.status = 'FILLED'
     """)
     List<TotalBuySellProjection> getTotalBuySell();
+
+//    @Query("""
+//    SELECT new com.financial.stockapp.dto.response.RecentTradingPairDto(
+//        p.symbol,
+//        (COUNT(p) * 100.0 / (SELECT COUNT(p2) FROM Position p2 WHERE p2.userId = :userId))
+//    )
+//    FROM Position p
+//    WHERE p.userId = :userId
+//    GROUP BY p.symbol
+//    ORDER BY COUNT(p) DESC
+//""")
+//    List<RecentTradingPairDto> getTopPairs(@Param("userId") String userId);
+
 }
