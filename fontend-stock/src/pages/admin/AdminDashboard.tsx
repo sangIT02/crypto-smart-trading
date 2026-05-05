@@ -135,6 +135,8 @@ export default function AdminDashboardPage() {
     fetchUserGrowthData();
     fetchOrderTypeData();
     fetchBuySellData();
+      fetchVolumeData(); // thêm dòng này
+
   }, []);
 
   const stats = useMemo(
@@ -188,7 +190,27 @@ export default function AdminDashboardPage() {
     BUY: "#00C087",
     SELL: "#F6465D",
   };
+const [volumeData, setVolumeData] = useState<any[]>([]);
 
+const fetchVolumeData = async () => {
+  try {
+    // TODO: thay bằng API thật của bạn
+    const fakeData = [
+      { time: "00h", volume: 1200 },
+      { time: "03h", volume: 900 },
+      { time: "06h", volume: 1500 },
+      { time: "09h", volume: 2200 },
+      { time: "12h", volume: 1800 },
+      { time: "15h", volume: 2600 },
+      { time: "18h", volume: 2100 },
+      { time: "21h", volume: 1700 },
+    ];
+
+    setVolumeData(fakeData);
+  } catch (error) {
+    console.error("Error fetching volume data:", error);
+  }
+};
   // const buySellData = [
   //   { name: "BUY", value: 62,},
   //   { name: "SELL", value: 38},
@@ -581,119 +603,52 @@ export default function AdminDashboardPage() {
           }}
         >
           {/* Recent Trades */}
-          <div style={cardStyle}>
-            <div
-              style={{
-                padding: "15px 28px",
-                borderBottom: "1px solid #1F1F1F",
-              }}
-            >
-              <h5 style={{ margin: 0, fontSize: "18px", fontWeight: "600" }}>
-                Giao dịch gần đây
-              </h5>
-            </div>
-            <div style={{ padding: "0 10px" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ color: "#888", borderBottom: "1px solid #222" }}>
-                    <th
-                      style={{
-                        textAlign: "left",
-                        padding: "20px 18px",
-                        fontWeight: "normal",
-                      }}
-                    >
-                      Mã lệnh
-                    </th>
-                    <th
-                      style={{
-                        textAlign: "left",
-                        padding: "20px 18px",
-                        fontWeight: "normal",
-                      }}
-                    >
-                      Người dùng
-                    </th>
-                    <th
-                      style={{
-                        textAlign: "left",
-                        padding: "20px 18px",
-                        fontWeight: "normal",
-                      }}
-                    >
-                      Cặp
-                    </th>
-                    <th
-                      style={{
-                        textAlign: "left",
-                        padding: "20px 18px",
-                        fontWeight: "normal",
-                      }}
-                    >
-                      Loại
-                    </th>
-                    <th
-                      style={{
-                        textAlign: "left",
-                        padding: "20px 18px",
-                        fontWeight: "normal",
-                      }}
-                    >
-                      Khối lượng
-                    </th>
-                    <th
-                      style={{
-                        textAlign: "left",
-                        padding: "20px 18px",
-                        fontWeight: "normal",
-                      }}
-                    >
-                      Trạng thái
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentTrades.map((trade, idx) => (
-                    <tr key={idx} style={{ borderBottom: "1px solid #1F1F1F" }}>
-                      <td style={{ padding: "18px", fontFamily: "monospace" }}>
-                        {trade.id}
-                      </td>
-                      <td style={{ padding: "18px" }}>{trade.user}</td>
-                      <td style={{ padding: "18px", fontWeight: "500" }}>
-                        {trade.pair}
-                      </td>
-                      <td style={{ padding: "18px" }}>
-                        <span
-                          style={{
-                            color: trade.side === "BUY" ? "#00C087" : "#F6465D",
-                            fontWeight: "600",
-                          }}
-                        >
-                          {trade.side}
-                        </span>
-                        <div style={{ fontSize: "12px", color: "#666" }}>
-                          {trade.type}
-                        </div>
-                      </td>
-                      <td style={{ padding: "18px" }}>{trade.amount}</td>
-                      <td style={{ padding: "18px" }}>
-                        <span
-                          style={{
-                            ...getBadgeStyle(trade.status),
-                            padding: "6px 14px",
-                            borderRadius: "8px",
-                            fontSize: "13px",
-                          }}
-                        >
-                          {trade.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+{/* Trading Volume Chart */}
+<div style={cardStyle}>
+  <div
+    style={{
+      padding: "15px 28px",
+      borderBottom: "1px solid #1F1F1F",
+    }}
+  >
+    <h5 style={{ margin: 0, fontSize: "18px", fontWeight: "600" }}>
+      Khối lượng giao dịch theo thời gian
+    </h5>
+  </div>
+
+  <div style={{ padding: "24px", height: "400px" }}>
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart data={volumeData}>
+        <defs>
+          <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#F0B90B" stopOpacity={0.8} />
+            <stop offset="95%" stopColor="#F0B90B" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+
+        <CartesianGrid strokeDasharray="3 3" stroke="#222" />
+        <XAxis dataKey="time" stroke="#555" />
+        <YAxis stroke="#555" />
+        <Tooltip
+          contentStyle={{
+            backgroundColor: "#111",
+            border: "1px solid #333",
+            borderRadius: "8px",
+          }}
+        />
+
+        <Area
+          type="monotone"
+          dataKey="volume"
+          stroke="#F0B90B"
+          fillOpacity={1}
+          fill="url(#colorVolume)"
+          strokeWidth={3}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  </div>
+</div>
 
           {/* Security Alerts */}
           <div style={cardStyle}>

@@ -5,7 +5,7 @@ const navItems = [
     { label: 'Tổng quan', href: '/dashboard', icon: Home },
     { label: 'Quản lý người dùng', href: '/users', icon: User },
     { label: 'Quản lý mô hình AI', href: '/ai-models', icon: Zap },
-    { label: 'Giám sát giao dịch', href: '/monitoring', icon: Wallet },
+    // { label: 'Giám sát giao dịch', href: '/monitoring', icon: Wallet },
     { label: 'Thông báo hàng loạt', href: '/notifications', icon: Bot },
     { label: 'Bảo mật hệ thống', href: '/security', icon: PieChart },
     {label: 'Đăng xuất', href:'/setting', icon: LogOut}

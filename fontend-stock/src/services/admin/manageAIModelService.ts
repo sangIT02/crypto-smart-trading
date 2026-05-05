@@ -1,7 +1,8 @@
 import axios from "axios";
+import { getAccessToken } from "../auth";
 
 const base_url = "http://localhost:8080/api/models";
-const token = localStorage.getItem("token");
+const token = getAccessToken();
 
 export const manageAIModelService = {
     getAllModels(){
