@@ -37,7 +37,7 @@ public class SecurityConfig {
                 // 3. Phân quyền (Authorize)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/users/login", "/api/users/register").permitAll() // public
+                        .requestMatchers("/api/auth/**").permitAll() // public
                         .anyRequest().authenticated()
                 )
 

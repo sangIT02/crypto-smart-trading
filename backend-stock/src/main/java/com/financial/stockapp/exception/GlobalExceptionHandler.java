@@ -114,4 +114,18 @@ public class GlobalExceptionHandler {
                         .error("Business Logic Error")
                         .build());
     }
+
+    @ExceptionHandler(InvalidGoogleTokenException.class)
+    public ResponseEntity<?> handleInvalidGoogleToken(InvalidGoogleTokenException ex) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of(
+                        "timestamp",
+                        LocalDateTime.now(),
+                        "message",
+                        ex.getMessage(),
+                        "status",
+                        401
+                ));
+    }
 }

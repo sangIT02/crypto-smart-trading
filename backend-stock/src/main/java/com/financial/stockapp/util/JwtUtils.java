@@ -25,7 +25,6 @@ public class JwtUtils {
     @Value("${jwt.access-token-expiration}")
     private long accessTokenExpiration; // vd: 3600000 (1 giờ, tính bằng ms)
 
-
     @Value("${jwt.refresh-token-expiration}")
     private long refreshTokenExpiration; // vd: 2592000000 (30 ngày, tính bằng ms)
 

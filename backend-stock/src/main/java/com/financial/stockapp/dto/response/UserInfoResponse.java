@@ -12,4 +12,5 @@ public class UserInfoResponse {
     private String email;
     private String user_name;
     private String avatar_url;
+    private String role;
 }

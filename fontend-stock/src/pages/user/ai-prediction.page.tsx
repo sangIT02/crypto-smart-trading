@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
     TrendingUp, TrendingDown, Minus,
     Brain, History,
-    BarChart2, ChevronDown
+    BarChart2, ChevronDown, ChartCandlestick
 } from 'lucide-react';
 import axios from 'axios';
 import { useCoinStore } from '../../store/coinStore';
@@ -345,7 +345,7 @@ export default function AIPredictionPage() {
                             marginTop: 2,
                         }}
                     >
-                        <span style={{ fontSize: 16, lineHeight: 1 }}>⚡</span>
+                        <ChartCandlestick size={16} color="#111" />
                         Dự đoán ngay
                     </button>
                 </div>
@@ -412,16 +412,10 @@ export default function AIPredictionPage() {
                                 padding: '7px 10px', borderRadius: 10, cursor: 'pointer',
                             }}>{m.name}</button>
                         ))}
+
+                        
                     </div>
 
-                    <span style={{
-                        marginLeft: 'auto',
-                        background: 'rgba(240,185,11,0.10)', color: '#f0b90b',
-                        fontSize: 11, fontWeight: 700, padding: '6px 10px', borderRadius: 999,
-                        border: '1px solid rgba(240,185,11,0.22)'
-                    }}>
-                        AI · Cập nhật 5 phút trước
-                    </span>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
@@ -540,13 +534,14 @@ export default function AIPredictionPage() {
                             {
                                 label: 'Mô hình', value: (
                                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                                        {models.map(m => (
+                                        {/* {models.map(m => (
                                             <span key={m.id} style={{
                                                 background: '#111111', color: '#9ca3af',
                                                 fontSize: 10, padding: '3px 7px',
                                                 borderRadius: 999, border: '1px solid #262626',
                                             }}>{m.name}</span>
-                                        ))}
+                                        ))} */}
+                                        LSTM
                                     </div>
                                 )
                             },

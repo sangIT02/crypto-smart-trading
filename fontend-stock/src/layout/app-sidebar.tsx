@@ -1,5 +1,6 @@
 import { Home, TrendingUp, Zap, Wallet, Grid3X3, Bot, PieChart, MessageCircle, Bell, Settings, KeyRound, User, CircleUser, LogOut } from 'lucide-react'
 import { href, Link, useLocation } from 'react-router-dom'
+import { authService } from '../services/auth'
 
 const navItems = [
     { label: 'Tổng quan', href: '/home', icon: Home },
@@ -13,7 +14,7 @@ const navItems = [
     { label: 'Cảnh báo', href: '/alert', icon: Bell },
     { label: 'API & Sàn giao dịch', href: '/apikey', icon: KeyRound,},
     { label: 'Cá nhân', href: '/profile', icon: CircleUser,},
-    {label: 'Đăng xuất', href:'/setting', icon: LogOut}
+    {label: 'Đăng xuất', href:'#logout', icon: LogOut}
 ]
 export function AppSidebar() {
     const location = useLocation()
@@ -22,6 +23,10 @@ export function AppSidebar() {
     const isActive = (href: string) => {
         if (href === '/') return pathname === '/'
         return pathname.startsWith(href)
+    }
+
+    const handleLogout = () => {
+        authService.logout();
     }
 
     return (
@@ -46,6 +51,28 @@ export function AppSidebar() {
                     {navItems.map((item) => {
                         const Icon = item.icon
                         const active = isActive(item.href)
+
+                        // Xử lý logout riêng
+                        if (item.href === '#logout') {
+                            return (
+                                <li key={item.label} className="nav-item">
+                                    <button
+                                        onClick={handleLogout}
+                                        className={`nav-link d-flex align-items-center gap-3 py-2 px-3 transition-all w-100 border-0`}
+                                        style={{
+                                            borderRadius: '8px',
+                                            backgroundColor: 'transparent',
+                                            color: '#EAECEF',
+                                            cursor: 'pointer',
+                                            textAlign: 'left'
+                                        }}
+                                    >
+                                        <Icon size={18} color={'#848E9C'} />
+                                        <span className="small">{item.label}</span>
+                                    </button>
+                                </li>
+                            )
+                        }
 
                         return (
                             <li key={item.href} className="nav-item">

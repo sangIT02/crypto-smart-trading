@@ -20,6 +20,10 @@ public class Prediction {
     @JoinColumn(name = "model_id", nullable = false)
     private Model model;
 
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "coin_id", nullable = false)
     private Coin coin;

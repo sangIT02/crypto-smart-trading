@@ -42,21 +42,9 @@ public class UserController {
                         .build();
     }
 
-//    @PostMapping("/register")
-//    public ApiResponse<?> register(@RequestBody RegisterRequestDTO dto){
-//        authService.register(dto);
-//        return ApiResponse.builder()
-//                .code(200)
-//                .data("success")
-//                .message("dang ki thanh cong")
-//                .build();
-//    }
 
-    @PostMapping("/login")
-    public ApiResponse<LoginResponse> login(@RequestBody UserLoginRequest dto, HttpServletRequest request){
-        LoginResponse userInfoResponse = userService.login(dto, request);
-        return ApiResponse.success(userInfoResponse);
-    }
+
+
 
     @GetMapping("insert")
     public ApiResponse<?> insert() throws InterruptedException {
