@@ -21,9 +21,12 @@ export const OpenPosition: React.FC = () => {
     try {
       const response = await positionService.getPositions();
       const data: PositionDTO[] = await response.data;
-      console.log("position", data);
       setPositionList(data);
-    } catch (error) {
+    } catch (error: any) {
+      const message = error.response.data.message;
+      const toastMessage =
+        error instanceof Error ? message : "Đã có lỗi xảy ra khi lấy vị thế.";
+      toast.error(toastMessage);
       console.error("Error fetching positions:", error);
     }
   };

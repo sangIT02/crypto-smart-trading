@@ -35,4 +35,6 @@ public interface IBinanceAccountRepository extends JpaRepository<BinanceAccount,
     WHERE user_id = :id
 """, nativeQuery = true)
     GetAPIKeyDTO getByUserId(@Param("id")int id);
+
+    boolean existsByUserIdAndIsActiveTrue(long userId);
 }

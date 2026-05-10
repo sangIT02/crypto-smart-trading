@@ -43,11 +43,7 @@ public class UserService implements IUserService {
             throw new UserNotFoundException("User chưa tồn tại");
         }
         boolean isMatch = encoder.matches(dto.getPassword(), user.getPassword());
-        if(!isMatch){
-            throw new PasswordNotCorrectException("Mật khẩu không chính xác");
-        }
         String device = SecurityUtils.parseDevice(request.getHeader("User-Agent"));
-
         String ipAddress = request.getHeader("X-Forwarded-For");
         if (ipAddress == null || ipAddress.isEmpty()) {
             ipAddress = request.getRemoteAddr(); // Fallback lấy IP trực tiếp
@@ -55,6 +51,17 @@ public class UserService implements IUserService {
 
         // 2. Logic check đăng nhập...
         String status = isMatch ? "SUCCESS" : "FAILED";
+        if(!isMatch){
+            UserLoginHistory loginHistory = UserLoginHistory.builder()
+                    .status(status)
+                    .device(device)
+                    .ipAddress(ipAddress)
+                    .user(user)
+                    .build();
+            userLoginHistoryRepository.save(loginHistory);
+            throw new PasswordNotCorrectException("Mật khẩu không chính xác");
+        }
+
         CustomUserDetails userDetails = new CustomUserDetails(user);
         String token = jwtUtils.generateToken(userDetails);
         String refreshToken = jwtUtils.generateRefreshToken(userDetails);

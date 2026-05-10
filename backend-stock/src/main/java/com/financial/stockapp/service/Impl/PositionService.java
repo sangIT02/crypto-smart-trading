@@ -4,6 +4,7 @@ import com.financial.stockapp.dto.request.ClosePositionRequest;
 import com.financial.stockapp.dto.request.GetAPIKeyDTO;
 import com.financial.stockapp.dto.response.ListOrderResponse;
 import com.financial.stockapp.dto.response.PositionDTO;
+import com.financial.stockapp.exception.BinanceApiKeyNullException;
 import com.financial.stockapp.repository.IBinanceAccountRepository;
 import com.financial.stockapp.util.BinanceSignatureUtils;
 import com.financial.stockapp.util.BinanceTimestampUtils;
@@ -30,6 +31,9 @@ public class PositionService {
     public List<PositionDTO> getAllPosition(){
         int userID = SecurityUtils.getCurrentUserId();
         GetAPIKeyDTO key = accountRepository.getByUserId(userID);
+        if(key == null){
+            throw new BinanceApiKeyNullException("Chưa có API key binance hoặc API bị sai");
+        }
         String apiKey = encryptionService.decrypt(key.getApiKey());
         String secretKey = encryptionService.decrypt(key.getSecretKey());
 

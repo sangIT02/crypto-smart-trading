@@ -6,6 +6,7 @@ import com.financial.stockapp.dto.request.GetAPIKeyDTO;
 import com.financial.stockapp.dto.response.*;
 import com.financial.stockapp.entity.BinanceAccount;
 import com.financial.stockapp.entity.User;
+import com.financial.stockapp.exception.InvalidBinanceApiException;
 import com.financial.stockapp.exception.UserNotFoundException;
 import com.financial.stockapp.repository.IBinanceAccountRepository;
 import com.financial.stockapp.repository.IUserRepository;
@@ -52,7 +53,7 @@ public class BinanceService {
     public ApiKeyResponse  AddKeyAccount(AddKeyAccountRequest request){
         long userId = SecurityUtils.getCurrentUserId();
         User user = userRepository.findById(userId);
-
+        validateApiKey(request.apiKey(),request.secretKey());
         String apiKey = encryptionService.encrypt(request.apiKey());
         String secretKey = encryptionService.encrypt(request.secretKey());
 
@@ -140,7 +141,32 @@ public class BinanceService {
     }
 
 
+    public void validateApiKey(String apiKey, String secretKey) {
+        try {
+            long timestamp = System.currentTimeMillis();
+            String queryString = "timestamp=" + timestamp;
+            String signature = signatureUtils.sign(queryString, secretKey);
+            webClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/fapi/v2/account")
+                            .queryParam("timestamp", timestamp)
+                            .queryParam("signature", signature)
+                            .build())
+                    .header("X-MBX-APIKEY", apiKey)  // API key để trong header
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();;
+        } catch (Exception ex) {
+            throw new InvalidBinanceApiException(
+                    "Invalid Binance API key or secret key."
+            );
+        }
+    }
 
 
-
+    public BinanceStatusResponse getBinanceStatus() {
+        long userId = SecurityUtils.getCurrentUserId();
+        boolean connected = accountRepository.existsByUserIdAndIsActiveTrue(userId);
+        return new BinanceStatusResponse(connected);
+    }
 }

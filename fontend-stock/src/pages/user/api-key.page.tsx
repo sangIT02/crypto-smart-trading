@@ -249,24 +249,39 @@ function AddKeyForm({ setKeyData, onCancel }: AddKeyFormProps) {
     const [agreed, setAgreed] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    async function submit() {
-        if (!label || !apiKey || !secretKey || !agreed) return;
+async function submit() {
+    if (!label || !apiKey || !secretKey || !agreed) return;
+
+    try {
 
         setLoading(true);
-        const response = await apiKeyService.addKey( label, apiKey, secretKey );
-        console.log(response.data.data);
-        const key:ApiKeyItem = await response.data.data
+
+        const response = await apiKeyService.addKey(
+            label,
+            apiKey,
+            secretKey
+        );
+
+        const key: ApiKeyItem = response.data.data;
+
         setKeyData({
-            id :key.id,
+            id: key.id,
             apiKey: key.apiKey,
             secretKey: key.secretKey,
             nameAccount: key.nameAccount,
             isActive: key.isActive,
             createdAt: key.createdAt,
         });
+
+        console.log("Success:", key);
+    } catch (error: any) {
+        console.error(error);
+        const message = error?.response?.data?.message ||"Failed to connect Binance account.";
+        alert(message);
+    } finally {
         setLoading(false);
     }
-
+}
     return (
         <div
             style={{

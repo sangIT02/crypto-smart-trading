@@ -4,6 +4,7 @@ import com.financial.stockapp.dto.ApiResponse;
 import com.financial.stockapp.dto.request.AddKeyAccountRequest;
 import com.financial.stockapp.dto.response.ApiKeyResponse;
 import com.financial.stockapp.dto.response.BinanceAccountResponse;
+import com.financial.stockapp.dto.response.BinanceStatusResponse;
 import com.financial.stockapp.dto.response.GetKeyProjection;
 import com.financial.stockapp.entity.BinanceAccount;
 import com.financial.stockapp.repository.IBinanceAccountRepository;
@@ -53,5 +54,8 @@ public class AccountController {
                 .data(response)
                 .build();
     }
-
+    @GetMapping("/status")
+    public ApiResponse<BinanceStatusResponse> getStatus() {
+        return ApiResponse.success(binanceService.getBinanceStatus());
+    }
 }

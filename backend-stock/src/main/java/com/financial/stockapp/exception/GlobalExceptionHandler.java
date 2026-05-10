@@ -128,4 +128,30 @@ public class GlobalExceptionHandler {
                         401
                 ));
     }
+
+    @ExceptionHandler(BinanceApiKeyNullException.class)
+    public ResponseEntity<?> handleBinanceApiKeyNullException(BinanceApiKeyNullException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Binance API Key Error");
+        response.put("message", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
+    @ExceptionHandler(InvalidBinanceApiException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidBinanceApiException(InvalidBinanceApiException ex) {
+        ErrorResponse response = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Binance Authentication Error")
+                .message(ex.getMessage())
+                .build();
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
 }
