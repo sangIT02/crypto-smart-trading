@@ -1,16 +1,25 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { AppLayout } from "../../layout/MainLayout";
 import { StatCards } from "./stat-card";
-import { AlertTriangle, Award, Gauge, Star, TrendingUp, Zap } from "lucide-react";
+import {
+  AlertTriangle,
+  Award,
+  Gauge,
+  Star,
+  TrendingUp,
+  Zap,
+} from "lucide-react";
 import { CoinSelector, MOCK_COINS } from "../TabBtn";
 import DashboardChart from "../chart/price-chart";
 import SignalSummary from "../chart/SignalSummary";
-import MAList from "../chart/MAItem";
+import MAList, { getMASignalSummary } from "../chart/MAItem";
 import {
   coinService,
   type MaSignalsResponse,
 } from "../../services/coinService";
 import { GaugeChart } from "../chart/GaugeChart";
+import { userService } from "../../services";
+import type { Dasboardata } from "../../services/userService";
 
 type TickerData = {
   symbol: string;
@@ -29,6 +38,11 @@ export default function DashboardPage() {
   const [isOpenSearch, setIsOpenSearch] = useState(false);
   const [selectedCoin, setSelectedCoin] = useState(MOCK_COINS[0]);
   const selectorRef = useRef<HTMLDivElement>(null);
+  const [dashboarData, setDashboardData] = useState<Dasboardata>({
+    order: 0,
+    pnl: 0,
+    totalWarning: 0    
+  });
   const [ma, setMA] = useState({
     sma7: 0,
     sma25: 0,
@@ -45,7 +59,6 @@ export default function DashboardPage() {
     try {
       const response = await coinService.getMaSignals(symbol, interval);
       const data = (await response.data.data) as MaSignalsResponse;
-      console.log("MA: ", data);
       setMA({
         sma7: data.sma7,
         sma25: data.sma25,
@@ -58,10 +71,41 @@ export default function DashboardPage() {
         neutral: data.neutral,
         marketPrice: data.marketPrice,
       });
-      console.log("MA state: ", ma);
     } catch (error) {}
   };
+  const [fearGreed, setFearGreed] = useState({
+    value: 0,
+    classification: "Neutral",
+  });
+  const maSignalSummary = useMemo(() => getMASignalSummary(ma), [ma]);
+
+  const fetchFearGreed = async () => {
+    try {
+      const response = await fetch("https://api.alternative.me/fng/");
+
+      const data = await response.json();
+
+      setFearGreed({
+        value: Number(data.data[0].value),
+        classification: data.data[0].value_classification,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchDashboardData = async () => {
+    try {
+      const response = await userService.getDasboardData();
+      const data: Dasboardata = await response.data.data;
+      setDashboardData(data)
+    }catch(error){
+
+    }}
+
   useEffect(() => {
+    fetchFearGreed();
+    fetchDashboardData();
     const handler = (e: MouseEvent) => {
       if (
         selectorRef.current &&
@@ -76,10 +120,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const stream = `${selectedCoin.symbol.toLowerCase()}usdt@ticker`;
-    const ws = new WebSocket(`wss://fstream.binance.com/ws/${stream}`);
+    const ws = new WebSocket(`wss://fstream.binance.com/market/ws/${stream}`);
     wsRef.current = ws;
     let isCleanedUp = false; // ← flag tránh setState sau cleanup
-    fetchSignalSummary(selectedCoin.symbol.toUpperCase()+"USDT", "1d"); // ← fetch tín hiệu MA khi coin thay đổi
+    fetchSignalSummary(selectedCoin.symbol.toUpperCase() + "USDT", "1d"); // ← fetch tín hiệu MA khi coin thay đổi
     ws.onopen = () => {
       if (!isCleanedUp) setConnected(true);
     };
@@ -87,7 +131,6 @@ export default function DashboardPage() {
     ws.onmessage = (event) => {
       if (isCleanedUp) return; // ← bỏ qua message nếu đã cleanup
       const data = JSON.parse(event.data);
-      console.log("ticker", data);
       setTicker({
         symbol: data.s,
         lastPrice: parseFloat(data.c),
@@ -133,67 +176,181 @@ export default function DashboardPage() {
       className="container-fluid py-4 pt-2"
       style={{ minHeight: "100vh", backgroundColor: "#000" }}
     >
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-        gap: "15px",
-        marginBottom: "15px"
-      }}>
-        <div style={{
-          backgroundColor: "#0A0A0A",
-          borderRadius: "16px",
-          border: "1px solid #1F1F1F",
-          padding: "24px",
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: "15px",
+          marginBottom: "15px",
+        }}
+      >
+        <div
+          style={{
+            backgroundColor: "#0A0A0A",
+            borderRadius: "16px",
+            border: "1px solid #1F1F1F",
+            padding: "24px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <div>
-              <p style={{ color: "#888", fontSize: "14.5px", marginBottom: "8px" }}>PNL Hôm nay</p>
-              <p style={{ fontSize: "28px", fontWeight: "700", color: "#0ECB81" }}>+2,847 USDT</p>
+              <p
+                style={{
+                  color: "#888",
+                  fontSize: "14.5px",
+                  marginBottom: "8px",
+                }}
+              >
+                PNL Hôm nay
+              </p>
+              <p
+                style={{
+                  fontSize: "28px",
+                  fontWeight: "700",
+                  color: "#0ECB81",
+                }}
+              >
+              {dashboarData?.pnl > 0 ? "+" : ""}
+              {dashboarData?.pnl}
+              </p>
             </div>
             <TrendingUp size={42} color="#0ECB81" />
           </div>
         </div>
 
-        <div style={{
-          backgroundColor: "#0A0A0A",
-          borderRadius: "16px",
-          border: "1px solid #1F1F1F",
-          padding: "24px",
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div
+          style={{
+            backgroundColor: "#0A0A0A",
+            borderRadius: "16px",
+            border: "1px solid #1F1F1F",
+            padding: "24px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <div>
-              <p style={{ color: "#888", fontSize: "14.5px", marginBottom: "8px" }}>Số lệnh hôm nay</p>
-              <p style={{ fontSize: "28px", fontWeight: "700" }}>142</p>
+              <p
+                style={{
+                  color: "#888",
+                  fontSize: "14.5px",
+                  marginBottom: "8px",
+                }}
+              >
+                Số lệnh hôm nay
+              </p>
+              <p style={{ fontSize: "28px", fontWeight: "700" }}>{dashboarData.order}</p>
             </div>
             <Zap size={42} color="#F0B90B" />
           </div>
         </div>
 
-        <div style={{
-          backgroundColor: "#0A0A0A",
-          borderRadius: "16px",
-          border: "1px solid #1F1F1F",
-          padding: "24px",
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div
+          style={{
+            backgroundColor: "#0A0A0A",
+            borderRadius: "16px",
+            border: "1px solid #1F1F1F",
+            padding: "24px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <div>
-              <p style={{ color: "#888", fontSize: "14.5px", marginBottom: "8px" }}>Win Rate</p>
-              <p style={{ fontSize: "28px", fontWeight: "700", color: "#0ECB81" }}>68.4%</p>
+              <p
+                style={{
+                  color: "#888",
+                  fontSize: "14.5px",
+                  marginBottom: "8px",
+                }}
+              >
+                Fear & Greed
+              </p>
+
+              <p
+                style={{
+                  fontSize: "28px",
+                  fontWeight: "700",
+                  color: "#F0B90B",
+                }}
+              >
+                {fearGreed.value}
+              </p>
+
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: "#999",
+                  marginTop: "4px",
+                }}
+              >
+                {fearGreed.classification}
+              </p>
+
+              <div
+                style={{
+                  height: "6px",
+                  background: "#1F1F1F",
+                  borderRadius: "999px",
+                  marginTop: "12px",
+                  overflow: "hidden",
+                  width: "120px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "72%",
+                    height: "100%",
+                    background: "#F0B90B",
+                    borderRadius: "999px",
+                  }}
+                />
+              </div>
             </div>
-            <Award size={42} color="#F0B90B" />
+
+            <Gauge size={42} color="#F0B90B" />
           </div>
         </div>
-
-        <div style={{
-          backgroundColor: "#0A0A0A",
-          borderRadius: "16px",
-          border: "1px solid #1F1F1F",
-          padding: "24px",
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div
+          style={{
+            backgroundColor: "#0A0A0A",
+            borderRadius: "16px",
+            border: "1px solid #1F1F1F",
+            padding: "24px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <div>
-              <p style={{ color: "#888", fontSize: "14.5px", marginBottom: "8px" }}>Cảnh báo giá đang hoạt động</p>
-              <p style={{ fontSize: "28px", fontWeight: "700" }}>12</p>
+              <p
+                style={{
+                  color: "#888",
+                  fontSize: "14.5px",
+                  marginBottom: "8px",
+                }}
+              >
+                Cảnh báo giá đang hoạt động
+              </p>
+              <p style={{ fontSize: "28px", fontWeight: "700" }}>{dashboarData.totalWarning}</p>
             </div>
             <AlertTriangle size={42} color="#F59E0B" />
           </div>
@@ -342,9 +499,17 @@ export default function DashboardPage() {
               Tín hiệu giao dịch MA
             </h5>
 
-            <GaugeChart sell={ma.sellSignal} neutral={ma.neutral} buy={ma.buySignal} />
-            <SignalSummary sell={ma.sellSignal} neutral={ma.neutral} buy={ma.buySignal} />
-            <MAList data={ma}/>
+            <GaugeChart
+              sell={maSignalSummary.sell}
+              neutral={maSignalSummary.neutral}
+              buy={maSignalSummary.buy}
+            />
+            <SignalSummary
+              sell={maSignalSummary.sell}
+              neutral={maSignalSummary.neutral}
+              buy={maSignalSummary.buy}
+            />
+            <MAList data={ma} />
           </div>
         </div>
       </div>

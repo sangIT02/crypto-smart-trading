@@ -3,6 +3,7 @@ package com.financial.stockapp.controller;
 import com.financial.stockapp.repository.projection.PredictionHistoryResponse;
 import com.financial.stockapp.dto.response.PredictionResponse;
 import com.financial.stockapp.service.Impl.PredictionService;
+import com.financial.stockapp.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +28,8 @@ public class PredictionController {
             @RequestParam(defaultValue = "LSTM") String model,
             @RequestParam() double currentPrice
     ) {
-        CompletableFuture<PredictionResponse> result = predictionService.predict(symbol, timeframe, model,currentPrice);
+        int user_id = SecurityUtils.getCurrentUserId();
+        CompletableFuture<PredictionResponse> result = predictionService.predict(user_id,symbol, timeframe, model,currentPrice);
         return ResponseEntity.ok(result.join());
     }
 

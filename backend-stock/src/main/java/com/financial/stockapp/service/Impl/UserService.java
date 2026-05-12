@@ -7,6 +7,8 @@ import com.financial.stockapp.entity.User;
 import com.financial.stockapp.entity.UserLoginHistory;
 import com.financial.stockapp.exception.PasswordNotCorrectException;
 import com.financial.stockapp.exception.UserNotFoundException;
+import com.financial.stockapp.repository.IAlertPriceRepository;
+import com.financial.stockapp.repository.IOrderRepository;
 import com.financial.stockapp.repository.IUserLoginHistoryRepository;
 import com.financial.stockapp.repository.IUserRepository;
 import com.financial.stockapp.repository.projection.LoginHistoryProjection;
@@ -34,6 +36,8 @@ public class UserService implements IUserService {
     private final IUserRepository userRepository;
     private final PasswordEncoder encoder;
     private final JwtUtils jwtUtils;
+    private final IOrderRepository orderRepository;
+    private final IAlertPriceRepository alertPriceRepository;
     private final IUserLoginHistoryRepository userLoginHistoryRepository;
     // đăng nhập
 
@@ -92,11 +96,10 @@ public class UserService implements IUserService {
     }
 
 
-
-
-    public List<LoginHistoryProjection> getLoginHistoryByUserId(){
+    public Page<LoginHistoryProjection> getLoginHistoryByUserId(int page,int size){
         int userId = SecurityUtils.getCurrentUserId();
-        List<LoginHistoryProjection> res = userLoginHistoryRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        Pageable pageable = PageRequest.of(page,size);
+        Page<LoginHistoryProjection> res = userLoginHistoryRepository.findByUserIdOrderByCreatedAtDesc(userId,pageable);
         return res;
     }
 
@@ -129,4 +132,12 @@ public class UserService implements IUserService {
         return userRepository.getTotalUserPermonth();
     }
 
+
+    public DashboardInfoResponse getDashboardInfo(){
+        int user_id = SecurityUtils.getCurrentUserId();
+        Double pnl = userRepository.getPnlPerDay(user_id).orElse(0d);
+        Long totalOrder = orderRepository.countTodayOrders(user_id);
+        int totalAlert = alertPriceRepository.findAlertPricesByUserId(user_id).size();
+        return new DashboardInfoResponse(pnl,totalOrder,totalAlert);
+    }
 }

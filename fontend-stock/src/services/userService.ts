@@ -18,6 +18,11 @@ export interface ApiResponse<T> {
     data: PageData<T>;
 }
 
+export type Dasboardata = {
+    pnl: number,
+    order: number,
+    totalWarning: number,
+}
 // 1. Cấu hình đường dẫn gốc của Backend Spring Boot
 const API_URL = "http://localhost:8080/api/users"; 
 
@@ -38,15 +43,22 @@ const userService = {
         return axios.post(`${API_URL}/verify-otp`,body);
     },
 
-    getLoginHistory: () => {
+    getLoginHistory: (page: number, size: number) => {
         const token = getAccessToken();
-        return axios.get(`${API_URL}/login-history`, {
+        return axios.get(`${API_URL}/login-history?page=${page}&size=${size}`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
         });
     },
-
+    getDasboardData: () => {
+        const token = getAccessToken();
+        return axios.get(`${API_URL}/dashboard-info`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+    }
 };
 
 // 3. Xuất nó ra để các nơi khác dùng

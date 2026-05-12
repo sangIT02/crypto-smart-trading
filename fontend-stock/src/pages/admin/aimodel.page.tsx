@@ -2,34 +2,32 @@ import React, { useEffect, useState } from "react";
 import {
   Activity,
   Brain,
-  Cpu,
-  Eye,
-  Gauge,
   Power,
-  RefreshCcw,
   Search,
   ShieldAlert,
 } from "lucide-react";
 import { Pagination, ConfigProvider } from "antd";
 import { AddAiModelModal } from "../../components/admin/AddAiModelModal";
-import { manageAIModelService, type AddNewModelData, type AIModel, type TotalModel } from "../../services/admin/manageAIModelService";
+import {
+  manageAIModelService,
+  type AIModel,
+  type TotalModel,
+} from "../../services/admin/manageAIModelService";
 import type { PageData } from "../../services/userService";
-import { formatBinanceTime } from "../../components/position/OpenOrder";
 import { formatDate } from "../../helper/FormatDateTime";
 import { toast } from "react-toastify";
-
-type ModelStatus = "Running" | "Stopped";
-type ModelType = "Forecasting" ;
-
 
 export const AiModelPage = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [showModal, setShowModal] = useState<boolean>(false);
-  const [currentPage, setCurrentPage] = useState(1); // 1-based page để gửi cho backend
+
+  const [currentPage, setCurrentPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+
   const [pageData, setPageData] = useState<PageData<AIModel> | null>(null);
   const [loading, setLoading] = useState(false);
+
   const [totalModels, setTotalModels] = useState<TotalModel>({
     totalAIModel: 0,
     totalAIModelActive: 0,
@@ -42,34 +40,15 @@ export const AiModelPage = () => {
   const fetchModels = async (page: number, size: number) => {
     try {
       setLoading(true);
-      const response = await manageAIModelService.getAllModelsWithPagination(page, size);
+
+      const response =
+        await manageAIModelService.getAllModelsWithPagination(page, size);
+
       setPageData(response.data.data);
     } catch (error) {
       console.error("Lỗi khi tải danh sách mô hình:", error);
     } finally {
       setLoading(false);
-    }
-  }
-
-  const handleUpdateModel = async (modelId: number) => {
-    const toastId = toast.loading("Đang cập nhật trạng thái mô hình...");
-    try {
-      const response = await manageAIModelService.updateModelStatus(modelId);
-      console.log("da", response.data.code);
-      if (response.data.code === 200) {
-        toast.update(toastId, {
-                render: `Đã cập nhật thành công!`,
-                type: "success",
-                isLoading: false,
-                autoClose: 3000,
-              });
-      }
-      fetchModels(currentPage, pageSize);
-    } catch (error) {
-      toast.error("Có lỗi xảy ra khi cập nhật trạng thái mô hình.", {
-        toastId,
-      });
-      console.error("Lỗi khi cập nhật trạng thái mô hình:", error);
     }
   };
 
@@ -77,403 +56,773 @@ export const AiModelPage = () => {
     try {
       const response = await manageAIModelService.getTotalModels();
       const data: TotalModel = response.data.data;
+
       setTotalModels(data);
     } catch (error) {
       console.error("Lỗi khi tải tổng mô hình:", error);
     }
-  }
+  };
 
-  // Gọi API khi thay đổi trang, kích thước trang
+  const handleUpdateModel = async (modelId: number) => {
+    const toastId = toast.loading(
+      "Đang cập nhật trạng thái mô hình..."
+    );
+
+    try {
+      const response =
+        await manageAIModelService.updateModelStatus(modelId);
+
+      if (response.data.code === 200) {
+        toast.update(toastId, {
+          render: "Đã cập nhật thành công!",
+          type: "success",
+          isLoading: false,
+          autoClose: 3000,
+        });
+      }
+
+      fetchModels(currentPage, pageSize);
+      fetchTotalModels();
+    } catch (error) {
+      toast.update(toastId, {
+        render: "Có lỗi xảy ra khi cập nhật trạng thái mô hình.",
+        type: "error",
+        isLoading: false,
+        autoClose: 3000,
+      });
+
+      console.error("Lỗi khi cập nhật trạng thái mô hình:", error);
+    }
+  };
+
   useEffect(() => {
     fetchModels(currentPage, pageSize);
     fetchTotalModels();
   }, [currentPage, pageSize]);
 
-  // Reset về trang 1 khi thay đổi search hoặc filter
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     setSearch(e.target.value);
-    setCurrentPage(1);
+    setCurrentPage(0);
   };
 
-  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setStatusFilter(e.target.value);
-    setCurrentPage(1);
-  };
+  const handlePaginationChange = (
+    page: number,
+    newPageSize: number
+  ) => {
+    setCurrentPage(page - 1);
 
-  const handlePaginationChange = (page: number, newPageSize: number) => {
-    setCurrentPage(page); // Gửi trực tiếp page từ Ant Design (1-based)
     if (newPageSize !== pageSize) {
       setPageSize(newPageSize);
-      setCurrentPage(1);
+      setCurrentPage(0);
     }
   };
 
-  const startIndex = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const endIndex = Math.min(currentPage * pageSize, totalItems);
+  const startIndex =
+    totalItems === 0 ? 0 : currentPage * pageSize + 1;
+
+  const endIndex = Math.min(
+    (currentPage + 1) * pageSize,
+    totalItems
+  );
 
   const cardStyle: React.CSSProperties = {
-    backgroundColor: "#000",
-    borderRadius: "12px",
-    border: "2px solid #2e2e2e",
+    backgroundColor: "#0A0A0A",
+    borderRadius: "16px",
+    border: "1px solid #1F1F1F",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.6)",
   };
 
-  const inputStyle: React.CSSProperties = {
-    backgroundColor: "#0b0b0b",
-    border: "1px solid #1a1a1a",
-    color: "#fff",
+  const getBadgeStyle = (
+    isActive: boolean
+  ): React.CSSProperties => {
+    return isActive
+      ? {
+          color: "#10B981",
+          backgroundColor: "rgba(16, 185, 129, 0.15)",
+          border: "1px solid rgba(16, 185, 129, 0.4)",
+          padding: "6px 14px",
+          borderRadius: "8px",
+          fontSize: "13px",
+          fontWeight: "500",
+        }
+      : {
+          color: "#EF4444",
+          backgroundColor: "rgba(239, 68, 68, 0.15)",
+          border: "1px solid rgba(239, 68, 68, 0.4)",
+          padding: "6px 14px",
+          borderRadius: "8px",
+          fontSize: "13px",
+          fontWeight: "500",
+        };
   };
-
-  const getBadgeStyle = (value: string): React.CSSProperties => {
-    switch (value) {
-      case "Running":
-        return {
-          color: "#00C087",
-          backgroundColor: "rgba(0, 192, 135, 0.12)",
-          border: "1px solid rgba(0, 192, 135, 0.2)",
-        };
-      case "Warning":
-        return {
-          color: "#F0B90B",
-          backgroundColor: "rgba(240, 185, 11, 0.12)",
-          border: "1px solid rgba(240, 185, 11, 0.2)",
-        };
-      case "Stopped":
-        return {
-          color: "#F6465D",
-          backgroundColor: "rgba(246, 70, 93, 0.12)",
-          border: "1px solid rgba(246, 70, 93, 0.2)",
-        };
-      default:
-        return {
-          color: "#9CA3AF",
-          backgroundColor: "rgba(156, 163, 175, 0.12)",
-          border: "1px solid rgba(156, 163, 175, 0.2)",
-        };
-    }
-  };
-
-  const getProgressColor = (value: number) => {
-    if (value >= 85) return "#F6465D";
-    if (value >= 65) return "#F0B90B";
-    return "#00C087";
-  };
-
-  const renderProgress = (value: number) => (
-    <div style={{ minWidth: "120px" }}>
-      <div className="d-flex justify-content-between mb-1">
-        <span className="text-secondary" style={{ fontSize: "11px" }}>
-          {value}%
-        </span>
-      </div>
-      <div
-        style={{
-          width: "100%",
-          height: "6px",
-          backgroundColor: "#151515",
-          borderRadius: "999px",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            width: `${value}%`,
-            height: "100%",
-            backgroundColor: getProgressColor(value),
-          }}
-        />
-      </div>
-    </div>
-  );
 
   return (
     <div
-      className="container-fluid py-4 pt-0"
-      style={{ backgroundColor: "#000", minHeight: "100vh" }}
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#000",
+      }}
     >
-      <div className="mb-4">
-        <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div
+        style={{
+          maxWidth: "1480px",
+          margin: "0 auto",
+          padding: "0 24px",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "16px",
+            marginBottom: "20px",
+          }}
+        >
           <div>
-            <h3 className="text-white fw-bold mb-1">Quản lý mô hình AI</h3>
-            <div className="text-secondary small">
-              Theo dõi trạng thái, hiệu suất, độ chính xác và điều khiển các mô
-              hình AI
-            </div>
+            <h1
+              style={{
+                fontSize: "32px",
+                fontWeight: "700",
+                margin: 0,
+                color: "#fff",
+              }}
+            >
+              Quản lý mô hình AI
+            </h1>
+
+            <p
+              style={{
+                color: "#888",
+                marginTop: "6px",
+              }}
+            >
+              Theo dõi trạng thái và quản lý các mô hình AI
+            </p>
           </div>
 
           <button
-            className="btn text-dark fw-semibold"
-            style={{ backgroundColor: "#F0B90B", border: "none" }}
             onClick={() => setShowModal(true)}
+            style={{
+              padding: "12px 28px",
+              backgroundColor: "#F0B90B",
+              color: "#000",
+              border: "none",
+              borderRadius: "12px",
+              fontWeight: "600",
+              cursor: "pointer",
+            }}
           >
             + Thêm mô hình
           </button>
         </div>
-      </div>
 
-      <div className="row g-3 mb-2">
-        <div className="col-12 col-md-6 col-xl-3">
-          <div className="card p-3 h-100" style={cardStyle}>
-            <div className="d-flex justify-content-between align-items-start">
-              <div>
-                <div className="text-secondary small">Tổng mô hình</div>
-                <div className="text-white fw-bold fs-4 mt-2">
-                  {totalModels.totalAIModel}
+        {/* Stats */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: "15px",
+            marginBottom: "15px",
+          }}
+        >
+          <div style={cardStyle}>
+            <div style={{ padding: "28px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      color: "#888",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Tổng mô hình
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: "36px",
+                      fontWeight: "700",
+                      marginTop: "8px",
+                      color: "#fff",
+                    }}
+                  >
+                    {totalModels.totalAIModel}
+                  </div>
                 </div>
+
+                <Brain size={40} color="#F0B90B" />
               </div>
-              <Brain size={18} color="#F0B90B" />
+            </div>
+          </div>
+
+          <div style={cardStyle}>
+            <div style={{ padding: "28px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      color: "#888",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Đang hoạt động
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: "36px",
+                      fontWeight: "700",
+                      marginTop: "8px",
+                      color: "#10B981",
+                    }}
+                  >
+                    {totalModels.totalAIModelActive}
+                  </div>
+                </div>
+
+                <Activity size={40} color="#10B981" />
+              </div>
+            </div>
+          </div>
+
+          <div style={cardStyle}>
+            <div style={{ padding: "28px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      color: "#888",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Cần cảnh báo
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: "36px",
+                      fontWeight: "700",
+                      marginTop: "8px",
+                      color: "#F59E0B",
+                    }}
+                  >
+                    0
+                  </div>
+                </div>
+
+                <ShieldAlert size={40} color="#F59E0B" />
+              </div>
+            </div>
+          </div>
+
+          <div style={cardStyle}>
+            <div style={{ padding: "28px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      color: "#888",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Đã dừng
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: "36px",
+                      fontWeight: "700",
+                      marginTop: "8px",
+                      color: "#EF4444",
+                    }}
+                  >
+                    {totalModels.totalAIModelInActive}
+                  </div>
+                </div>
+
+                <Power size={40} color="#EF4444" />
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="col-12 col-md-6 col-xl-3">
-          <div className="card p-3 h-100" style={cardStyle}>
-            <div className="d-flex justify-content-between align-items-start">
-              <div>
-                <div className="text-secondary small">Đang hoạt động</div>
-                <div className="text-white fw-bold fs-4 mt-2">
-                  {totalModels.totalAIModelActive}
-                </div>
-              </div>
-              <Activity size={18} color="#00C087" />
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-md-6 col-xl-3">
-          <div className="card p-3 h-100" style={cardStyle}>
-            <div className="d-flex justify-content-between align-items-start">
-              <div>
-                <div className="text-secondary small">Cần cảnh báo</div>
-                <div className="text-white fw-bold fs-4 mt-2">
-                  {0}
-                </div>
-              </div>
-              <ShieldAlert size={18} color="#F0B90B" />
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-md-6 col-xl-3">
-          <div className="card p-3 h-100" style={cardStyle}>
-            <div className="d-flex justify-content-between align-items-start">
-              <div>
-                <div className="text-secondary small">Dừng hoạt động</div>
-                <div className="text-white fw-bold fs-4 mt-2">
-                  {totalModels.totalAIModelInActive}
-                </div>
-              </div>
-              <Power size={18} color="#F6465D" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="card p-2 mb-2" style={cardStyle}>
-        <div className="row g-3 align-items-end">
-          <div className="col-12 col-lg-8">
-            <label className="form-label text-secondary small">
-              Tìm kiếm mô hình
-            </label>
-            <div className="position-relative">
-              <Search
-                size={16}
-                className="position-absolute top-50 translate-middle-y"
-                style={{ left: "12px", color: "#6c757d" }}
-              />
-              <input
-                type="text"
-                className="form-control ps-5"
-                placeholder="Tìm theo ID, tên mô hình, loại, version..."
-                value={search}
-                onChange={handleSearchChange}
-                style={inputStyle}
-              />
-            </div>
-          </div>
-
-          <div className="col-12 col-lg-4">
-            <label className="form-label text-secondary small">
-              Trạng thái
-            </label>
-            <select
-              className="form-select"
-              value={statusFilter}
-              onChange={handleStatusFilterChange}
-              style={inputStyle}
+        {/* Filter */}
+        <div style={cardStyle} className="mb-3">
+          <div style={{ padding: "15px 28px" }}>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "20px",
+                alignItems: "end",
+              }}
             >
-              <option value="All">Tất cả</option>
-              <option value="Running">Running</option>
-              <option value="Stopped">Stopped</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div className="row g-4 mb-2">
-        <div className="col-12 col-xl-12">
-          <div className="card p-4 h-100" style={cardStyle}>
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5 className="text-white fw-bold mb-0">Danh sách mô hình</h5>
-              <span className="text-secondary small">
-                {totalItems} kết quả
-              </span>
-            </div>
-
-            <div className="table-responsive">
-              <table className="table table-dark align-middle mb-0">
-                <thead>
-                  <tr style={{ color: "#7d8592" }}>
-                    <th className="border-0 bg-transparent">ID</th>
-                    <th className="border-0 bg-transparent">Mô hình</th>
-                    <th className="border-0 bg-transparent">Loại</th>
-                    <th className="border-0 bg-transparent">Trạng thái</th>
-                    <th className="border-0 bg-transparent">Trained at</th>
-                    <th className="border-0 bg-transparent" title="Độ chính xác (Accuracy): Tỷ lệ phần trăm các dự đoán đúng trên tổng số mẫu.">Accuracy</th>
-                    <th className="border-0 bg-transparent" title="Sai số tuyệt đối trung bình (MAE): Mô hình dự đoán lệch bao nhiêu so với thực tế.">mae</th>
-                    <th className="border-0 bg-transparent" title="Sai số bình phương trung bình (RMSE): Mô hình dự đoán lệch bao nhiêu so với thực tế.">rmse</th>
-                    <th className="border-0 bg-transparent text-center">
-                      Hành động
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {models.map((model) => (
-                    <tr key={model.id}>
-                      <td style={{ backgroundColor: "transparent" }}>
-                        {model.id}
-                      </td>
-
-                      <td style={{ backgroundColor: "transparent" }}>
-                        <div>
-                          <div className="text-white fw-semibold">
-                            {model.modelName}
-                          </div>
-                          <div className="text-secondary small">
-                            {"LSTM"}
-                          </div>
-                        </div>
-                      </td>
-
-                      <td style={{ backgroundColor: "transparent" }} title="Dự đoán các giá trị tương lai dựa trên quy luật từ quá khứ.">
-                        {"Forecasting"}
-                      </td>
-
-                      <td style={{ backgroundColor: "transparent" }}>
-                        <span
-                          className="px-2 py-1 rounded small"
-                          style={getBadgeStyle(model.isActive ? "Running" : "Stopped")}
-                        >
-                          {model.isActive ? "Running" : "Stopped"}
-                        </span>
-                      </td>
-                      <td style={{ backgroundColor: "transparent" }}>
-                        {formatDate(model.trainedAt, "full")}
-                      </td>
-
-                      <td style={{ backgroundColor: "transparent" }}>
-                        {model.isActive === false
-                          ? "--"
-                          : `${model.directionAcc}%`}
-                      </td>
-
-                      <td style={{ backgroundColor: "transparent" }}>
-                        {model.isActive === false
-                          ? "--"
-                          : `${model.mae} `}
-                      </td>
-
-                      <td style={{ backgroundColor: "transparent" }}>
-                        {model.rmse}
-                      </td>
-
-                      <td style={{ backgroundColor: "transparent" }}>
-                        <div className="d-flex justify-content-center gap-2 flex-wrap">
-
-
-                          <button
-                            className="btn btn-sm"
-                            onClick = {() => handleUpdateModel(model.id)}
-                            style={{
-                              color:
-                                model.isActive === false
-                                  ? "#00C087"
-                                  : "#F6465D",
-                              backgroundColor:
-                                model.isActive === false
-                                  ? "rgba(0, 192, 135, 0.12)"
-                                  : "rgba(246, 70, 93, 0.12)",
-                              border:
-                                model.isActive === false
-                                  ? "1px solid rgba(0, 192, 135, 0.2)"
-                                  : "1px solid rgba(246, 70, 93, 0.2)",
-                            }}
-                            title={
-                              model.isActive === false
-                                ? "Bật mô hình"
-                                : "Tắt mô hình"
-                            }
-                          >
-                            <Power size={15} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-
-                  {models.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="text-center text-secondary py-4"
-                        style={{ backgroundColor: "transparent" }}
-                      >
-                        Không tìm thấy mô hình phù hợp
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-3">
-              <span className="text-secondary small">
-                Hiển thị {startIndex} - {endIndex} trong {totalItems} mô hình
-              </span>
-              
-              {totalItems > 0 && (
-                <ConfigProvider
-                  theme={{
-                    token: {
-                      colorPrimary: "#F0B90B",
-                      colorBgContainer: "#111",
-                      colorText: "#fff",
-                      colorBorder: "#1f1f1f",
-                      borderRadius: 6,
-                    },
+              <div style={{ flex: 1, minWidth: "300px" }}>
+                <label
+                  style={{
+                    color: "#888",
+                    fontSize: "14px",
+                    marginBottom: "8px",
+                    display: "block",
                   }}
                 >
-                  <Pagination
-                    current={currentPage}
-                    pageSize={pageSize}
-                    total={totalItems}
-                    onChange={handlePaginationChange}
-                    pageSizeOptions={["5", "10", "20", "50"]}
-                    showSizeChanger
-                    showQuickJumper
-                    showTotal={(total) => `Tổng ${total} mô hình`}
-                    locale={{
-                      items_per_page: "/ trang",
-                      jump_to: "Đến trang",
-                      page: "",
+                  Tìm kiếm mô hình
+                </label>
+
+                <div
+                  style={{
+                    position: "relative",
+                    backgroundColor: "#111",
+                    border: "1px solid #1F1F1F",
+                    borderRadius: "12px",
+                    padding: "12px 16px",
+                  }}
+                >
+                  <Search
+                    size={18}
+                    style={{
+                      position: "absolute",
+                      left: "16px",
+                      top: "14px",
+                      color: "#666",
                     }}
-                    style={{ marginLeft: "auto" }}
                   />
-                </ConfigProvider>
-              )}
+
+                  <input
+                    type="text"
+                    placeholder="Tìm theo tên mô hình..."
+                    value={search}
+                    onChange={handleSearchChange}
+                    style={{
+                      width: "100%",
+                      background: "transparent",
+                      border: "none",
+                      outline: "none",
+                      color: "#fff",
+                      paddingLeft: "40px",
+                      fontSize: "15px",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ minWidth: "180px" }}>
+                <label
+                  style={{
+                    color: "#888",
+                    fontSize: "14px",
+                    marginBottom: "8px",
+                    display: "block",
+                  }}
+                >
+                  Trạng thái
+                </label>
+
+                <select
+                  value={statusFilter}
+                  onChange={(e) =>
+                    setStatusFilter(e.target.value)
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "12px 16px",
+                    backgroundColor: "#111",
+                    border: "1px solid #1F1F1F",
+                    borderRadius: "12px",
+                    color: "#fff",
+                    fontSize: "15px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <option value="All">Tất cả</option>
+                  <option value="Running">Running</option>
+                  <option value="Stopped">Stopped</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Table */}
+        <div style={cardStyle}>
+          <div
+            style={{
+              padding: "15px 28px",
+              borderBottom: "1px solid #1F1F1F",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <h5
+              style={{
+                margin: 0,
+                fontSize: "20px",
+                fontWeight: "600",
+                color: "#fff",
+              }}
+            >
+              Danh sách mô hình
+            </h5>
+
+            <span style={{ color: "#888" }}>
+              {totalItems} kết quả
+            </span>
+          </div>
+
+          <div style={{ overflowX: "auto" }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+              }}
+            >
+              <thead>
+                <tr
+                  style={{
+                    color: "#888",
+                    borderBottom: "1px solid #222",
+                  }}
+                >
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "20px 24px",
+                      fontWeight: "normal",
+                    }}
+                  >
+                    ID
+                  </th>
+
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "20px 24px",
+                      fontWeight: "normal",
+                    }}
+                  >
+                    Mô hình
+                  </th>
+
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "20px 24px",
+                      fontWeight: "normal",
+                    }}
+                  >
+                    Loại
+                  </th>
+
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "20px 24px",
+                      fontWeight: "normal",
+                    }}
+                  >
+                    Trạng thái
+                  </th>
+
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "20px 24px",
+                      fontWeight: "normal",
+                    }}
+                  >
+                    Trained At
+                  </th>
+
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "20px 24px",
+                      fontWeight: "normal",
+                    }}
+                  >
+                    Accuracy
+                  </th>
+
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "20px 24px",
+                      fontWeight: "normal",
+                    }}
+                  >
+                    MAE
+                  </th>
+
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "20px 24px",
+                      fontWeight: "normal",
+                    }}
+                  >
+                    RMSE
+                  </th>
+
+                  <th
+                    style={{
+                      textAlign: "center",
+                      padding: "20px 24px",
+                      fontWeight: "normal",
+                    }}
+                  >
+                    Hành động
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {models.map((model) => (
+                  <tr
+                    key={model.id}
+                    style={{
+                      borderBottom: "1px solid #1F1F1F",
+                    }}
+                  >
+                    <td
+                      style={{
+                        padding: "20px 24px",
+                        color: "#aaa",
+                        fontFamily: "monospace",
+                      }}
+                    >
+                      {model.id}
+                    </td>
+
+                    <td style={{ padding: "20px 24px" }}>
+                      <div>
+                        <div
+                          style={{
+                            fontWeight: "600",
+                            color: "#fff",
+                          }}
+                        >
+                          {model.modelName}
+                        </div>
+
+                        <div
+                          style={{
+                            color: "#888",
+                            fontSize: "14px",
+                          }}
+                        >
+                          LSTM
+                        </div>
+                      </div>
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "20px 24px",
+                        color: "#ccc",
+                      }}
+                    >
+                      Forecasting
+                    </td>
+
+                    <td style={{ padding: "20px 24px" }}>
+                      <span
+                        style={getBadgeStyle(model.isActive)}
+                      >
+                        {model.isActive
+                          ? "Running"
+                          : "Stopped"}
+                      </span>
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "20px 24px",
+                        color: "#ccc",
+                      }}
+                    >
+                      {formatDate(model.trainedAt, "full")}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "20px 24px",
+                        color: "#fff",
+                        fontWeight: "500",
+                      }}
+                    >
+                      {model.isActive === false
+                        ? "--"
+                        : `${model.directionAcc}%`}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "20px 24px",
+                        color: "#fff",
+                        fontWeight: "500",
+                      }}
+                    >
+                      {model.isActive === false
+                        ? "--"
+                        : model.mae}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "20px 24px",
+                        color: "#fff",
+                        fontWeight: "500",
+                      }}
+                    >
+                      {model.rmse}
+                    </td>
+
+                    <td style={{ padding: "20px 24px" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <button
+                          onClick={() =>
+                            handleUpdateModel(model.id)
+                          }
+                          style={{
+                            padding: "8px 12px",
+                            backgroundColor:
+                              model.isActive
+                                ? "rgba(239, 68, 68, 0.12)"
+                                : "rgba(16, 185, 129, 0.12)",
+                            border: model.isActive
+                              ? "1px solid rgba(239, 68, 68, 0.3)"
+                              : "1px solid rgba(16, 185, 129, 0.3)",
+                            borderRadius: "8px",
+                            color: model.isActive
+                              ? "#EF4444"
+                              : "#10B981",
+                            cursor: "pointer",
+                          }}
+                          title={
+                            model.isActive
+                              ? "Tắt mô hình"
+                              : "Bật mô hình"
+                          }
+                        >
+                          <Power size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+                {models.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={9}
+                      style={{
+                        padding: "60px 20px",
+                        textAlign: "center",
+                        color: "#666",
+                      }}
+                    >
+                      Không tìm thấy mô hình phù hợp
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {totalItems > 0 && (
+            <div
+              style={{
+                padding: "24px 28px",
+                borderTop: "1px solid #1F1F1F",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "16px",
+              }}
+            >
+              <div style={{ color: "#888" }}>
+                Hiển thị {startIndex} - {endIndex} trong
+                tổng {totalItems} mô hình
+              </div>
+
+              <ConfigProvider
+                theme={{
+                  token: {
+                    colorPrimary: "#F0B90B",
+                    colorBgContainer: "#111",
+                    colorText: "#fff",
+                    colorBorder: "#1F1F1F",
+                    borderRadius: 8,
+                  },
+                }}
+              >
+                <Pagination
+                  current={currentPage + 1}
+                  pageSize={pageSize}
+                  total={totalItems}
+                  onChange={handlePaginationChange}
+                  showSizeChanger
+                  showQuickJumper
+                  pageSizeOptions={[
+                    "10",
+                    "20",
+                    "50",
+                    "100",
+                  ]}
+                  showTotal={(total) =>
+                    `Tổng ${total} mô hình`
+                  }
+                  locale={{
+                    items_per_page: "/ trang",
+                    jump_to: "Đến trang",
+                    page: "",
+                  }}
+                />
+              </ConfigProvider>
+            </div>
+          )}
+        </div>
       </div>
+
       <AddAiModelModal
         show={showModal}
         onClose={() => setShowModal(false)}

@@ -3,28 +3,13 @@ import { portfolioService, type FuturesBalanceResponse } from '../../services/po
 import axios from 'axios';
 import { positionService, type PositionDTO } from '../../services/positionService';
 import EquityChart from '../../components/chart/EquityChart';
-
-type PositionSide = 'LONG' | 'SHORT';
-
-type PositionItem = {
-    id: number;
-    symbol: string;
-    side: PositionSide;
-    size: number;
-    entryPrice: number;
-    markPrice: number;
-    liquidationPrice: number;
-    margin: number;
-    leverage: number;
-    unrealizedPnl: number;
-    roe: number;
-};
+import { keyAccountService } from '../../services/keyAccountService';
+import { ApiKeyRequiredOverlay } from '../../components/ApiKeyRequiredOverlay ';
 
 type EquityPoint = {
     label: string;
     value: number;
 };
-
 
 const EQUITY_DATA: EquityPoint[] = [
     { label: '01', value: 10120 },
@@ -53,34 +38,6 @@ const EQUITY_DATA: EquityPoint[] = [
     { label: '24', value: 12710 },
 ];
 
-const POSITIONS: PositionItem[] = [
-    {
-        id: 1,
-        symbol: 'BTC/USDT',
-        side: 'LONG',
-        size: 0.18,
-        entryPrice: 68420,
-        markPrice: 69850,
-        liquidationPrice: 61240,
-        margin: 1240,
-        leverage: 10,
-        unrealizedPnl: 257.4,
-        roe: 20.76,
-    },
-    {
-        id: 2,
-        symbol: 'ETH/USDT',
-        side: 'SHORT',
-        size: 1.6,
-        entryPrice: 3560,
-        markPrice: 3515,
-        liquidationPrice: 3842,
-        margin: 840,
-        leverage: 8,
-        unrealizedPnl: 72,
-        roe: 8.57,
-    },
-];
 
 
 function formatPrice(value: number, digits = 2) {
@@ -230,7 +187,7 @@ function MiniInfo({ label, value }: { label: string; value: string }) {
         </div>
     );
 }
-``
+
 function PositionCard({ item }: { item: PositionDTO }) {
     // 1. Ép kiểu và tính toán các giá trị cơ bản
     const unRealizedProfit = Number(item.unRealizedProfit);
@@ -325,7 +282,7 @@ function PositionCard({ item }: { item: PositionDTO }) {
                 <MiniInfo label="Margin" value={`${formatPrice(marginUsed)} USDT`} />
                 <MiniInfo 
                     label="PnL" 
-                    value={`${positive ? '+' : ''}${formatMoney(unRealizedProfit)}`} 
+                    value={`${positive ? '' : ''}${formatMoney(unRealizedProfit)}`} 
                 />
                 <MiniInfo 
                     label="ROE" 
@@ -336,49 +293,6 @@ function PositionCard({ item }: { item: PositionDTO }) {
     );
 }
 
-// function EquityChart({ data }: { data: EquityPoint[] }) {
-//     const max = Math.max(...data.map((d) => d.value));
-//     const min = Math.min(...data.map((d) => d.value));
-//     const points = data
-//         .map((d, i) => {
-//             const x = (i / (data.length - 1)) * 100;
-//             const y = 100 - ((d.value - min) / (max - min || 1)) * 100;
-//             return `${x},${y}`;
-//         })
-//         .join(' ');
-
-//     return (
-//         <div
-//             style={{
-//                 background: '#070707',
-//                 border: '1px solid #171717',
-//                 borderRadius: 14,
-//                 padding: 14,
-//             }}
-//         >
-//             <div style={{ height: 220, width: '100%', position: 'relative' }}>
-//                 <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
-//                     <defs>
-//                         <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
-//                             <stop offset="0%" stopColor="rgba(240,185,11,0.25)" />
-//                             <stop offset="100%" stopColor="rgba(240,185,11,0.02)" />
-//                         </linearGradient>
-//                     </defs>
-//                     {[20, 40, 60, 80].map((line) => (
-//                         <line key={line} x1="0" y1={line} x2="100" y2={line} stroke="#171717" strokeWidth="0.8" />
-//                     ))}
-//                     <polyline fill="url(#equityFill)" stroke="none" points={`0,100 ${points} 100,100`} />
-//                     <polyline fill="none" stroke="#f0b90b" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" points={points} />
-//                 </svg>
-//             </div>
-//             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, gap: 8 }}>
-//                 {data.map((d) => (
-//                     <span key={d.label} style={{ fontSize: 11, color: '#71717a' }}>{d.label}</span>
-//                 ))}
-//             </div>
-//         </div>
-//     );
-// }
 
 function AllocationBar({ label, value, color }: { label: string; value: number; color: string }) {
     return (
@@ -394,51 +308,33 @@ function AllocationBar({ label, value, color }: { label: string; value: number; 
     );
 }
 
-// ─── MiniSparkline ──────────────────────────────────────────────────
-function MiniSparkline({ positive }: { positive: boolean }) {
-    // Fake sparkline path based on trend direction
-    const points = positive
-        ? '0,18 8,14 16,16 24,10 32,12 40,6 48,8 56,4 64,7 72,2'
-        : '0,4 8,6 16,4 24,10 32,8 40,14 48,12 56,16 64,14 72,18';
-
-    const color = positive ? '#0ecb81' : '#f6465d';
-    return (
-        <svg width="72" height="22" viewBox="0 0 72 22" fill="none">
-            <defs>
-                <linearGradient id={`spark-${positive}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-                    <stop offset="100%" stopColor={color} stopOpacity="0.02" />
-                </linearGradient>
-            </defs>
-            <polyline
-                fill={`url(#spark-${positive})`}
-                stroke="none"
-                points={`0,22 ${points} 72,22`}
-            />
-            <polyline fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
-        </svg>
-    );
-}
-
-
-
-
-
 
 export const Portfolio = () => {
     const [activeRange, setActiveRange] = useState<'1D' | '7D' | '30D' | 'ALL'>('7D');
     const [data,setData] = useState<FuturesBalanceResponse>()
     const [positionData, setPositionData] = useState<PositionDTO[]>([]);
+    const [keyStatus, setKeyStatus] = useState<boolean | null>(null);
+    const fetchKeyStatus = async () => {
+    try {
+        const response = await keyAccountService.getKeyStatus();
+        setKeyStatus(response.data.data.connected);
+    } catch (error) {
+        setKeyStatus(false);
+    }
+};
+
     const fetchPositions = async () => {
         try {
             const response = await positionService.getPositions();
             const data:PositionDTO[] = await response.data;
+            console.log("", data);
             setPositionData(data);
         } catch (error) {
             console.error('Error fetching positions:', error);
         }
     }
     useEffect(() => {
+        fetchKeyStatus();
         fetchPositions();
         const fetchBalance = async () => {
             const response = await portfolioService.getBalance()
@@ -463,6 +359,17 @@ export const Portfolio = () => {
 
     return (
         <div
+    style={{
+        position: "relative",
+        fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+        background: '#000',
+        minHeight: '100vh',
+        color: '#e5e7eb',
+        padding: '28px 24px',
+        margin: '0 auto',
+    }}
+>
+        <div
             style={{
                 fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
                 background: '#000',
@@ -486,12 +393,56 @@ export const Portfolio = () => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, marginBottom: 18 }}>
-                <StatCard title="Total Equity" value={`${formatPrice(Number(data?.totalWalletBalance))} USDT`} hint="Tổng tài sản futures" />
-                <StatCard title="Available Balance" value={`${formatPrice(Number(data?.availableBalance))} USDT`} hint="Số dư khả dụng" />
-                <StatCard title="Unrealized PnL" value={formatMoney(Number(data?.totalUnrealizedProfit))} hint="PnL chưa chốt" accent={Number(data?.totalUnrealizedProfit) >= 0 ? 'rgba(14,203,129,0.22)' : 'rgba(246,70,93,0.22)'} />
-                <StatCard title="Total Margin Balance" value={formatMoney(Number(data?.totalMarginBalance))} hint="Số dư ký quỹ" accent="rgba(240,185,11,0.22)" />
-            </div>
+<div
+  style={{
+    display: 'grid',
+    gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+    gap: 12,
+    marginBottom: 18,
+  }}
+>
+  {/* Wallet Balance */}
+  <StatCard
+    title="Wallet Balance"
+    value={`${formatPrice(Number(data?.totalWalletBalance))} USDT`}
+    hint="Số dư ví futures"
+  />
+
+  {/* Equity */}
+  <StatCard
+    title="Total Equity"
+    value={`${formatPrice(Number(data?.totalMarginBalance))} USDT`}
+    hint="Tổng tài sản thực tế"
+    accent="rgba(240,185,11,0.22)"
+  />
+
+  {/* Available */}
+  <StatCard
+    title="Available Balance"
+    value={`${formatPrice(Number(data?.availableBalance))} USDT`}
+    hint="Số dư khả dụng"
+  />
+
+  {/* Used Margin */}
+  <StatCard
+    title="Used Margin"
+    value={`${formatPrice(Number(data?.totalInitialMargin))} USDT`}
+    hint="Ký quỹ đang sử dụng"
+    accent="rgba(96,165,250,0.22)"
+  />
+
+  {/* PnL */}
+  <StatCard
+    title="Unrealized PnL"
+    value={formatMoney(Number(data?.totalUnrealizedProfit))}
+    hint="Lãi/lỗ chưa chốt"
+    accent={
+      Number(data?.totalUnrealizedProfit) >= 0
+        ? 'rgba(14,203,129,0.22)'
+        : 'rgba(246,70,93,0.22)'
+    }
+  />
+</div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(320px, 0.9fr)', gap: 16, marginBottom: 16 }}>
                 <div style={{ background: 'linear-gradient(180deg, #0b0b0b 0%, #050505 100%)', border: '1px solid #1a1a1a', borderRadius: 16, padding: 16, boxShadow: '0 0 0 1px rgba(255,255,255,0.015)' }}>
@@ -551,10 +502,12 @@ export const Portfolio = () => {
 
 
         </div>
+        {keyStatus === false && <ApiKeyRequiredOverlay />}
+        </div>
+        
     );
 };
 
-// ─── Icons ─────────────────────────────────────────────────────────
 
 function PortfolioRoundIcon() {
     return (
@@ -584,27 +537,4 @@ function PositionIcon() {
         </svg>
     );
 }
-function PerformanceIcon() {
-    return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m3 17 6-6 4 4 8-8" /><path d="M14 7h7v7" />
-        </svg>
-    );
-}
-function FeeIcon() {
-    return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M9 10c0-1.1.9-2 3-2s3 .9 3 2-1 1.6-3 2c-2 .4-3 1-3 2s.9 2 3 2 3-.9 3-2" />
-            <path d="M12 7v10" />
-        </svg>
-    );
-}
-function WalletIcon() {
-    return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 12V8a2 2 0 0 0-2-2H5a2 2 0 0 1-2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6" />
-            <circle cx="16" cy="14" r="1" />
-        </svg>
-    );
-}
+

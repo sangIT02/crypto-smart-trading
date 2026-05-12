@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Badge } from "antd";
 import { Bell, Search, Moon, Sun } from "lucide-react";
+import { useNotification } from "../contexts/NotificationContext";
 
 type LiveTickerItem = {
     symbol: string;
@@ -13,7 +14,7 @@ export function AppHeader() {
     const [dark, setDark] = useState(true);
     const [now, setNow] = useState(new Date());
     const [ticker, setTicker] = useState<LiveTickerItem[]>();
-
+    const { notifications, unreadCount, setUnreadCount } = useNotification();
     const fetchTicker = () => {
         fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22,%22BNBUSDT%22,%22SOLUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22DOGEUSDT%22,%22SHIBUSDT%22,%22AVAXUSDT%22,%22DOTUSDT%22]")
             .then((res) => res.json())

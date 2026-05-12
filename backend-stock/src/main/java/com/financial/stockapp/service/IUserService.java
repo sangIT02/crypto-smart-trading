@@ -12,9 +12,10 @@ import java.util.List;
 
 public interface IUserService {
     LoginResponse login(UserLoginRequest dto, HttpServletRequest request);
-    List<LoginHistoryProjection> getLoginHistoryByUserId();
+    Page<LoginHistoryProjection> getLoginHistoryByUserId(int page,int size);
     CountUserResponse countUser();
     Page<TotalUserProjection> getAllUsers(int page, int size);
     void updateUserStatus(int userId);
     List<TotalUserPermonthDto> getTotalUserPerMonth();
+    DashboardInfoResponse getDashboardInfo();
 }

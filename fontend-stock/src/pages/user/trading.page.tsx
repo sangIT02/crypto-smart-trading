@@ -52,36 +52,25 @@ export const Trading = () => {
             left: 0,
             right: 0,
             bottom: 0,
-
             background: "rgba(10, 10, 15, 0.78)",
             backdropFilter: "blur(6px)",
-
             display: "flex",
             justifyContent: "center",
-
             // đưa modal lên trên
             alignItems: "flex-start",
             paddingTop: "110px",
-
             zIndex: 1000,
           }}
         >
           <div
             style={{
               width: "430px",
-
               background: "#000",
-
               border: "2px solid #2e2e2e",
-
               borderRadius: "20px",
-
               padding: "36px",
-
               textAlign: "center",
-
               boxShadow: "0 25px 50px rgba(0,0,0,0.45)",
-
               color: "white",
             }}
           >
@@ -90,15 +79,11 @@ export const Trading = () => {
               style={{
                 width: "72px",
                 height: "72px",
-
                 borderRadius: "50%",
-
                 background: "rgba(245, 158, 11, 0.12)",
-
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-
                 margin: "0 auto 24px",
               }}
             >

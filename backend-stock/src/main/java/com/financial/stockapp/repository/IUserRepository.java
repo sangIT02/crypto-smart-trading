@@ -63,4 +63,16 @@ where  u.provider_id = :googleId
     ORDER BY DATE_FORMAT(created_at, '%Y-%m') ASC
 """, nativeQuery = true)
     List<TotalUserPermonthDto> getTotalUserPermonth();
+
+    @Query(value = """
+    SELECT
+        ROUND(SUM(pnl), 2)
+    FROM positions
+    WHERE user_id = :user_id
+      AND DATE(updated_at) = CURDATE()
+""", nativeQuery = true)
+    Optional<Double> getPnlPerDay(@Param("user_id") int user_id);
+
+    @Query("SELECT u.id FROM User u")
+    List<Long> findAllIds();
 }

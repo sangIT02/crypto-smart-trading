@@ -58,6 +58,27 @@ spring:
         #completions-path: /v1beta/openai/chat/completions groq không cần
         options:
           model:  llama-3.1-8b-instant #gemini-2.5-flash
+
+  rabbitmq:
+    host: localhost        # Địa chỉ server (nếu chạy Docker trên máy thì là localhost)
+    port: 5672             # Cổng kết nối của RabbitMQ (mặc định)
+    username: guest        # Tài khoản mặc định
+    password: guest        # Mật khẩu mặc định
+
+    # Cấu hình cho phía Gửi (Producer)
+    template:
+      retry:
+        enabled: true      # Tự động gửi lại nếu gặp lỗi mạng
+        initial-interval: 2000ms
+        max-attempts: 3    # Thử lại tối đa 3 lần
+
+    # Cấu hình cho phía Nhận (Consumer/Worker)
+    listener:
+      simple:
+        acknowledge-mode: auto      # Tự động xác nhận đã nhận tin khi xử lý xong
+        concurrency: 2              # Số lượng "công nhân" chạy song song tối thiểu
+        max-concurrency: 5          # Số lượng "công nhân" tối đa khi hàng đợi bị quá tải
+        prefetch: 1                 # Mỗi công nhân chỉ
 #gemini-3-flash-preview
 #gemini-2.5-flash-lite
 #gemini-2.5-flash
@@ -77,7 +98,7 @@ sepay:
 
 ai:
   service:
-    url: http://127.0.0.1:8000
+    url: http://localhost:8000
 
 app:
   crypto:

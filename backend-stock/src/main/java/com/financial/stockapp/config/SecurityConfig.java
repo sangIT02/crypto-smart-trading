@@ -38,6 +38,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll() // public
+                        .requestMatchers("/ws/**").permitAll() // CHO PHÉP TẤT CẢ truy cập vào endpoint WebSocket
                         .anyRequest().authenticated()
                 )
 

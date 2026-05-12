@@ -3,6 +3,7 @@ package com.financial.stockapp.controller;
 import com.financial.stockapp.dto.ApiResponse;
 import com.financial.stockapp.dto.request.UserLoginRequest;
 import com.financial.stockapp.dto.request.VerifyOtpDto;
+import com.financial.stockapp.dto.response.DashboardInfoResponse;
 import com.financial.stockapp.repository.projection.LoginHistoryProjection;
 import com.financial.stockapp.dto.response.LoginResponse;
 import com.financial.stockapp.service.IUserService;
@@ -10,6 +11,8 @@ import com.financial.stockapp.service.Impl.AuthService;
 import com.financial.stockapp.service.Impl.CoinService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.checkerframework.checker.units.qual.A;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,10 +45,6 @@ public class UserController {
                         .build();
     }
 
-
-
-
-
     @GetMapping("insert")
     public ApiResponse<?> insert() throws InterruptedException {
         coinService.fetchAndSaveCoins();
@@ -53,9 +52,15 @@ public class UserController {
     }
 
     @GetMapping("login-history")
-    public ApiResponse<List<LoginHistoryProjection>> getLoginHistory(){
-        List<LoginHistoryProjection> res = userService.getLoginHistoryByUserId();
+    public ApiResponse<Page<LoginHistoryProjection>> getLoginHistory(
+            @RequestParam(value = "page", defaultValue = "0")int page,
+            @RequestParam(value = "size", defaultValue = "9")int size){
+        Page<LoginHistoryProjection> res = userService.getLoginHistoryByUserId(page,size);
         return ApiResponse.success(res);
     }
 
+    @GetMapping("/dashboard-info")
+    public ApiResponse<DashboardInfoResponse> getInfo(){
+        return ApiResponse.success(userService.getDashboardInfo());
+    }
 }

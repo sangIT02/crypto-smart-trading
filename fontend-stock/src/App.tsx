@@ -22,43 +22,49 @@ import { AiModelPage } from "./pages/admin/aimodel.page";
 import { UserPage } from "./pages/admin/user.page";
 import { NotFoundPage } from "./pages/NotFoundPage ";
 import { SecurityPage } from "./pages/admin/security.page";
+import { NotificationProvider } from "./contexts/NotificationContext";
 function App() {
+  const currentUserId = 39; 
+
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Redirect từ "/" sang "/home" để tránh trang trắng */}
-        <Route path="/" element={<Navigate to="/home" replace />} />
+      {/* 1. Bọc NotificationProvider: Quản lý thông báo từ Spring Boot (STOMP) */}
+      <NotificationProvider userId={currentUserId}>
+        
+          <Routes>
+            <Route path="/" element={<Navigate to="/register" replace />} />
+            {/* Nhóm Route dành cho User */}
+            <Route element={<AppLayout />}>
+              <Route path="/home" element={<DashboardPage />} />
+              <Route path="/market" element={<Market />} />
+              <Route path="/ai-prediction" element={<AIPredictionPage />} />
+              <Route path="/trading" element={<Trading />} />
+              <Route path="/grid-trading" element={<GridTrading />} />
+              <Route path="/bot-trade" element={<BotTrade />} />
+              <Route path="/portfolio" element={<Portfolio />} />
+              <Route path="/chat-bot" element={<ChatBot />} />
+              <Route path="/alert" element={<PriceAlertsPage />} />
+              <Route path="/apikey" element={<ApiKeyPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+            </Route>
 
-        {/* Nhóm Route dành cho User */}
-        <Route element={<AppLayout />}>
-          <Route path="/home" element={<DashboardPage />} />
-          <Route path="/market" element={<Market />} />
-          <Route path="/ai-prediction" element={<AIPredictionPage />} />
-          <Route path="/trading" element={<Trading />} />
-          <Route path="/grid-trading" element={<GridTrading />} />
-          <Route path="/bot-trade" element={<BotTrade />} />
-          <Route path="/portfolio" element={<Portfolio />} />
-          <Route path="/chat-bot" element={<ChatBot />} />
-          <Route path="/alert" element={<PriceAlertsPage />} />
-          <Route path="/apikey" element={<ApiKeyPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-        </Route>
+            <Route path="/register" element={<RegisterPage />} />
 
-          <Route path="/register" element={<RegisterPage />} />
+            {/* Nhóm Route dành cho Admin */}
+            <Route element={<AdminLayout />}>
+              <Route path="/dashboard" element={<AdminDashboardPage />} />
+              <Route path="/users" element={<UserPage />} />
+              <Route path="/ai-models" element={<AiModelPage />} />
+              <Route path="/monitoring" element={<MonitoringPage />} />
+              <Route path="/notifications" element={<NotificationPage />} />
+              <Route path="/security" element={<SecurityPage />} />
+            </Route>
 
-        {/* Nhóm Route dành cho Admin */}
-        <Route element={<AdminLayout />}>
-          <Route path="/dashboard" element={<AdminDashboardPage />} />
-          <Route path="/users" element={<UserPage />} />
-          <Route path="/ai-models" element={<AiModelPage />} />
-          <Route path="/monitoring" element={<MonitoringPage />} />
-          <Route path="/notifications" element={<NotificationPage />} />
-          <Route path="/security" element={<SecurityPage />} />
-        </Route>
+            {/* Trang 404 */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
 
-        {/* Trang 404 - Nếu người dùng nhập sai URL */}
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+      </NotificationProvider>
     </BrowserRouter>
   );
 }

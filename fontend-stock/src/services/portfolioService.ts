@@ -6,6 +6,7 @@ export interface FuturesBalanceResponse {
     totalWalletBalance: string;     // Dùng string để đảm bảo độ chính xác thập phân
     totalUnrealizedProfit: string;
     totalMarginBalance: string;
+    totalInitialMargin: string;
     availableBalance: string;
     assets: AssetItem[];
     positions: PositionItem[];

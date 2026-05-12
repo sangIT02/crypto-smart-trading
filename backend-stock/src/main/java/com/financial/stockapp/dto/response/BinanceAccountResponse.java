@@ -18,6 +18,7 @@ public record BinanceAccountResponse(
         BigDecimal totalUnrealizedProfit,
         BigDecimal totalMarginBalance,
         BigDecimal availableBalance,
+        BigDecimal totalInitialMargin,
         List<BinanceAssetDto> assets,
         List<BinancePositionDto> positions
 ) {}

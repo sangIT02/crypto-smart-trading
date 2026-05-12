@@ -1,6 +1,8 @@
-import React, { use, useEffect, useMemo, useState } from 'react';
-import { AppLayout } from '../../layout/MainLayout';
+import React, { useEffect, useState } from 'react';
+import { ConfigProvider, Pagination } from 'antd';
+import type { PageData } from '../../services/userService';
 import { userService } from '../../services';
+import { formatDate } from '../../helper/FormatDateTime';
 
 type UserProfile = {
   id: number;
@@ -26,8 +28,6 @@ type LoginHistoryItem = {
   createdAt: string;
 };
 
-
-
 const MOCK_USER: UserProfile = {
   id: 12,
   email: 'trader@cryptomind.ai',
@@ -42,31 +42,6 @@ const MOCK_USER: UserProfile = {
   createdAt: '20/03/2026 10:20',
   updatedAt: '31/03/2026 09:05',
 };
-
-
-
-
-function StatCard({ title, value, hint, accent }: { title: string; value: string; hint: string; accent?: string }) {
-  return (
-    <div
-      style={{
-        flex: 1,
-        minWidth: 0,
-        background: 'linear-gradient(180deg, #0b0b0b 0%, #050505 100%)',
-        border: `1px solid ${accent ?? '#1a1a1a'}`,
-        borderRadius: 14,
-        padding: 16,
-        boxShadow: '0 0 0 1px rgba(255,255,255,0.015)',
-      }}
-    >
-      <div style={{ fontSize: 10, color: '#6b7280', letterSpacing: 1.3, textTransform: 'uppercase', fontWeight: 600, marginBottom: 8 }}>
-        {title}
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: '#fafafa', letterSpacing: -0.4, marginBottom: 6 }}>{value}</div>
-      <div style={{ fontSize: 12, color: '#71717a', lineHeight: 1.6 }}>{hint}</div>
-    </div>
-  );
-}
 
 function SectionTitle({ icon, title, action }: { icon: React.ReactNode; title: string; action?: React.ReactNode }) {
   return (
@@ -103,37 +78,6 @@ function MiniInfo({ label, value }: { label: string; value: string }) {
   );
 }
 
-function StatusPill({ active }: { active: boolean }) {
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '5px 10px',
-        borderRadius: 999,
-        background: active ? '#07130b' : '#190707',
-        border: active ? '1px solid #16371f' : '1px solid #4c1010',
-        color: active ? '#4ade80' : '#fca5a5',
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: 0.8,
-      }}
-    >
-      <span
-        style={{
-          width: 6,
-          height: 6,
-          borderRadius: '50%',
-          background: active ? '#22c55e' : '#ef4444',
-          boxShadow: active ? '0 0 8px rgba(34,197,94,0.65)' : 'none',
-        }}
-      />
-      {active ? 'ACTIVE' : 'INACTIVE'}
-    </span>
-  );
-}
-
 function LoginHistoryCard({ item }: { item: LoginHistoryItem }) {
   const success = item.status === 'SUCCESS';
   return (
@@ -166,7 +110,7 @@ function LoginHistoryCard({ item }: { item: LoginHistoryItem }) {
         </div>
         <div style={rowStyle}>
           <span style={labelStyle}>Time</span>
-          <span style={valueStyle}>{item.createdAt}</span>
+          <span style={valueStyle}>{formatDate(item.createdAt)}</span>
         </div>
       </div>
     </div>
@@ -175,110 +119,93 @@ function LoginHistoryCard({ item }: { item: LoginHistoryItem }) {
 
 function ProfilePage() {
   const [user] = useState<UserProfile>(MOCK_USER);
-  const [loginHistory,setLoginHistory] = useState<LoginHistoryItem[]>([]);
-  const fetchLoginHistory = async () => {
+  const [loginHistory, setLoginHistory] = useState<LoginHistoryItem[]>([]);
+  const [pageData, setPageData] = useState<PageData<LoginHistoryItem> | null>(null);
+
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(9); // Mặc định 9 items/trang
+
+  const fetchLoginHistory = async (page: number, size: number) => {
     try {
-      const response = await userService.getLoginHistory();
-      const listLoginHistory: LoginHistoryItem[] = response.data.data;
-      setLoginHistory(listLoginHistory);
+      const response = await userService.getLoginHistory(page, size);
+      const data: PageData<LoginHistoryItem> = response.data.data;
+      
+      setPageData(data);
+      setLoginHistory(data.content || []);
     } catch (error) {
       console.error('Failed to fetch login history:', error);
     }
-  }
+  };
+
   useEffect(() => {
-    fetchLoginHistory();
-  }, [])
+    fetchLoginHistory(currentPage, pageSize);
+  }, [currentPage, pageSize]);
+
+  const totalItems = pageData?.totalElements || 0;
+  const startIndex = totalItems === 0 ? 0 : currentPage * pageSize + 1;
+  const endIndex = Math.min((currentPage + 1) * pageSize, totalItems);
+
+  const handlePaginationChange = (page: number, newPageSize: number) => {
+    setCurrentPage(page - 1);
+    if (newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+      setCurrentPage(0);
+    }
+  };
 
   return (
-      <div
-        style={{
-          fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
-          background: '#000',
-          minHeight: '100vh',
-          color: '#e5e7eb',
-          padding: '28px 24px',
-          margin: '0 auto',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 20 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <ProfileRoundIcon />
-              <span style={{ fontSize: 10, color: '#6b7280', letterSpacing: 3, textTransform: 'uppercase', fontWeight: 600 }}>
-                Profile & Security
-              </span>
-            </div>
-
-            <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, color: '#fafafa', letterSpacing: -0.3 }}>
-              Hồ sơ cá nhân
-            </h1>
+    <div
+      style={{
+        fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+        background: '#000',
+        minHeight: '100vh',
+        color: '#e5e7eb',
+        padding: '28px 24px',
+        margin: '0 auto',
+      }}
+    >
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 20 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <ProfileRoundIcon />
+            <span style={{ fontSize: 10, color: '#6b7280', letterSpacing: 3, textTransform: 'uppercase', fontWeight: 600 }}>
+              Profile & Security
+            </span>
           </div>
-
-          <button
-            type="button"
-            style={{
-              flexShrink: 0,
-              padding: '12px 16px',
-              borderRadius: 12,
-              cursor: 'pointer',
-              background: 'linear-gradient(180deg, #f0b90b 0%, #c9920a 100%)',
-              border: '1px solid #e0ae10',
-              color: '#111',
-              fontSize: 13,
-              fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              boxShadow: '0 8px 22px rgba(240,185,11,0.16)',
-              marginTop: 2,
-            }}
-          >
-            <span style={{ fontSize: 16, lineHeight: 1 }}>✎</span>
-            Chỉnh sửa hồ sơ
-          </button>
+          <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, color: '#fafafa', letterSpacing: -0.3 }}>
+            Hồ sơ cá nhân
+          </h1>
         </div>
 
-        <div style={{ display: 'grid', gap: 16, marginBottom: 16 }}>
-          <div
-            style={{
-              background: 'linear-gradient(180deg, #0b0b0b 0%, #050505 100%)',
-              border: '1px solid #1a1a1a',
-              borderRadius: 16,
-              padding: 16,
-              boxShadow: '0 0 0 1px rgba(255,255,255,0.015)',
-            }}
-          >
-            <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
-              <img
-                src={user.avatarUrl}
-                alt={user.fullName}
-                width={72}
-                height={72}
-                style={{ borderRadius: '50%', border: '2px solid #1f1f1f', objectFit: 'cover' }}
-              />
-              <div>
-                <div style={{ fontSize: 18, color: '#fafafa', fontWeight: 700, marginBottom: 6 }}>{user.fullName}</div>
-                <div style={{ fontSize: 12, color: '#a1a1aa', marginBottom: 4 }}>@{user.username}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={rolePill}>{user.role}</span>
-                  <span style={user.emailVerified ? verifiedPill : unverifiedPill}>{user.emailVerified ? 'Email Verified' : 'Email Unverified'}</span>
-                </div>
-              </div>
-            </div>
+        <button
+          type="button"
+          style={{
+            flexShrink: 0,
+            padding: '12px 16px',
+            borderRadius: 12,
+            cursor: 'pointer',
+            background: 'linear-gradient(180deg, #f0b90b 0%, #c9920a 100%)',
+            border: '1px solid #e0ae10',
+            color: '#111',
+            fontSize: 13,
+            fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            boxShadow: '0 8px 22px rgba(240,185,11,0.16)',
+            marginTop: 2,
+          }}
+        >
+          <span style={{ fontSize: 16, lineHeight: 1 }}>✎</span>
+          Chỉnh sửa hồ sơ
+        </button>
+      </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
-              <MiniInfo label="Email" value={user.email} />
-              <MiniInfo label="Phone" value={user.phone || '--'} />
-              <MiniInfo label="Auth Provider" value={user.authProvider} />
-              <MiniInfo label="Updated At" value={user.updatedAt} />
-              <MiniInfo label="Created At" value={user.createdAt} />
-              <MiniInfo label="User ID" value={`${user.id}`} />
-            </div>
-          </div>
-        </div>
-
+      {/* Profile Information */}
+      <div style={{ display: 'grid', gap: 16, marginBottom: 16 }}>
         <div
           style={{
             background: 'linear-gradient(180deg, #0b0b0b 0%, #050505 100%)',
@@ -286,20 +213,118 @@ function ProfilePage() {
             borderRadius: 16,
             padding: 16,
             boxShadow: '0 0 0 1px rgba(255,255,255,0.015)',
-            marginBottom: 16,
           }}
         >
-          <SectionTitle icon={<HistoryIcon />} title="Lịch sử đăng nhập" action={<span style={{ fontSize: 11, color: '#71717a' }}> records</span>} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
-            {loginHistory.map((item) => (
-              <LoginHistoryCard key={item.id} item={item} />
-            ))}
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
+            <img
+              src={user.avatarUrl}
+              alt={user.fullName}
+              width={72}
+              height={72}
+              style={{ borderRadius: '50%', border: '2px solid #1f1f1f', objectFit: 'cover' }}
+            />
+            <div>
+              <div style={{ fontSize: 18, color: '#fafafa', fontWeight: 700, marginBottom: 6 }}>{user.fullName}</div>
+              <div style={{ fontSize: 12, color: '#a1a1aa', marginBottom: 4 }}>@{user.username}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={rolePill}>{user.role}</span>
+                <span style={user.emailVerified ? verifiedPill : unverifiedPill}>
+                  {user.emailVerified ? 'Email Verified' : 'Email Unverified'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+            <MiniInfo label="Email" value={user.email} />
+            <MiniInfo label="Phone" value={user.phone || '--'} />
+            <MiniInfo label="Auth Provider" value={user.authProvider} />
+            <MiniInfo label="Updated At" value={user.updatedAt} />
+            <MiniInfo label="Created At" value={user.createdAt} />
+            <MiniInfo label="User ID" value={`${user.id}`} />
           </div>
         </div>
       </div>
+
+      {/* Login History Section */}
+      <div
+        style={{
+          background: 'linear-gradient(180deg, #0b0b0b 0%, #050505 100%)',
+          border: '1px solid #1a1a1a',
+          borderRadius: 16,
+          padding: 16,
+          boxShadow: '0 0 0 1px rgba(255,255,255,0.015)',
+        }}
+      >
+        <SectionTitle 
+          icon={<HistoryIcon />} 
+          title="Lịch sử đăng nhập" 
+          action={<span style={{ fontSize: 11, color: '#71717a' }}>{totalItems} records</span>} 
+        />
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
+          {loginHistory.map((item) => (
+            <LoginHistoryCard key={item.id} item={item} />
+          ))}
+
+          {loginHistory.length === 0 && (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 20px', color: '#666' }}>
+              Chưa có lịch sử đăng nhập
+            </div>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {totalItems > 0 && (
+          <div style={{ 
+            marginTop: 24, 
+            paddingTop: 20, 
+            borderTop: '1px solid #1F1F1F', 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 16 
+          }}>
+            <div style={{ color: '#888' }}>
+              Hiển thị {startIndex} - {endIndex} trong tổng {totalItems} lịch sử
+            </div>
+
+            <ConfigProvider
+              theme={{
+                token: {
+                  colorPrimary: "#F0B90B",
+                  colorBgContainer: "#111",
+                  colorText: "#fff",
+                  colorBorder: "#1F1F1F",
+                  borderRadius: 8,
+                },
+              }}
+            >
+              <Pagination
+                current={currentPage + 1}
+                pageSize={pageSize}
+                total={totalItems}
+                onChange={handlePaginationChange}
+                showSizeChanger
+                showQuickJumper
+                pageSizeOptions={["6", "9", "18", "27"]}
+                showTotal={(total) => `Tổng ${total} records`}
+                locale={{
+                  items_per_page: "/ trang",
+                  jump_to: "Đến trang",
+                  page: "",
+                }}
+              />
+            </ConfigProvider>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
+/* ==================== STYLES ==================== */
 const rowStyle: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
@@ -317,13 +342,6 @@ const valueStyle: React.CSSProperties = {
   color: '#f3f4f6',
   fontWeight: 600,
   textAlign: 'right',
-};
-
-const securityCard: React.CSSProperties = {
-  background: '#070707',
-  border: '1px solid #171717',
-  borderRadius: 14,
-  padding: 14,
 };
 
 const rolePill: React.CSSProperties = {
@@ -361,23 +379,6 @@ function ProfileRoundIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 21a8 8 0 1 0-16 0" />
       <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
-}
-
-function UserIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21a8 8 0 1 0-16 0" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
-}
-
-function SecurityIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2 4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6l-8-4Z" />
     </svg>
   );
 }

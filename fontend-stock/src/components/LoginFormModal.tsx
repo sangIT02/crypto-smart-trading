@@ -116,10 +116,10 @@ export const LoginFormModal = ({ show, onClose }: LoginModalProps) => {
                 </div>
 
                 <form>
-                  {/* PHONE INPUT */}
+                  {/* Email INPUT */}
                   <div className="mb-3">
                     <label className="form-label fw-semibold text-secondary small">
-                      Số điện thoại
+                      Email
                     </label>
                     <div className="input-group">
                       <span className="input-group-text bg-white border-end-0">
@@ -128,7 +128,7 @@ export const LoginFormModal = ({ show, onClose }: LoginModalProps) => {
                       <input
                         type="text"
                         className="form-control border-start-0 ps-0 shadow-none"
-                        placeholder="Nhập số điện thoại"
+                        placeholder="Nhập email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                       />
@@ -145,6 +145,8 @@ export const LoginFormModal = ({ show, onClose }: LoginModalProps) => {
                         <i className="bi bi-lock text-muted"></i>
                       </span>
                       <input
+                        autoComplete="new-password"
+
                         type={showPassword ? "text" : "password"}
                         className="form-control border-start-0 border-end-0 ps-0 shadow-none"
                         placeholder="Nhập mật khẩu"

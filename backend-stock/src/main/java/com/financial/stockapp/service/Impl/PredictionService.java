@@ -38,6 +38,7 @@ public class PredictionService {
     private  final IUserRepository userRepository;
     @Async
     public CompletableFuture<PredictionResponse> predict(
+            int user_id,
             String symbol,
             String timeframe,
             String model,
@@ -50,7 +51,6 @@ public class PredictionService {
         PredictionResponse response =
                 aiServiceClient.predict(symbol, timeframe, model, candles,currentPrice);
 
-        int user_id = SecurityUtils.getCurrentUserId();
         User user = userRepository.findById(user_id);
         Model m = modelRepository.findModelByName(model);
         Coin c = coinRepository.findCoinByTradingPair(symbol);

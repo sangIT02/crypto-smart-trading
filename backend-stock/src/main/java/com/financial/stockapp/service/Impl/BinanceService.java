@@ -111,8 +111,8 @@ public class BinanceService {
         List<BinanceAssetDto> activeAssets = binanceResponse.assets().stream()
                 .filter(asset -> new BigDecimal(asset.walletBalance()).compareTo(BigDecimal.ZERO) > 0)
                 .collect(Collectors.toList());
-
 // Lọc những vị thế (positions) đang mở (có khối lượng giao dịch khác 0)
+
         List<BinancePositionDto> openPositions = binanceResponse.positions().stream()
                 .filter(pos -> new BigDecimal(pos.positionAmt()).compareTo(BigDecimal.ZERO) != 0 || pos.symbol().equals("BTCUSDT"))
                 .collect(Collectors.toList());
@@ -126,7 +126,7 @@ public class BinanceService {
                 binanceResponse.totalUnrealizedProfit(),
                 binanceResponse.totalMarginBalance(),
                 binanceResponse.availableBalance(),
-
+                binanceResponse.totalInitialMargin(),
                 // Gắn 2 list vừa lọc xong vào
                 activeAssets,
                 openPositions

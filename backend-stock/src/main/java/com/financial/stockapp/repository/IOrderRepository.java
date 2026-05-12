@@ -64,4 +64,11 @@ public interface IOrderRepository extends JpaRepository<Order, Integer> {
 //""")
 //    List<RecentTradingPairDto> getTopPairs(@Param("userId") String userId);
 
+    @Query(value = """
+    SELECT COUNT(*)
+    FROM orders
+    WHERE user_id = :userId
+    AND DATE(created_at) = CURDATE()
+""", nativeQuery = true)
+    Long countTodayOrders(@Param("userId") int userId);
 }
