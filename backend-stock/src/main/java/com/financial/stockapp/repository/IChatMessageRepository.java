@@ -15,7 +15,7 @@ public interface IChatMessageRepository extends JpaRepository<ChatMessage,Long> 
         SELECT * FROM chat_messages as cm
         WHERE cm.session_id = :sessionId
         ORDER BY cm.created_at DESC
-        LIMIT 20
+        LIMIT 10
 """, nativeQuery = true)
     List<ChatMessage> findTopBySessionIdOrderByCreatedAtDesc(@Param("sessionId") String sessionId);
 

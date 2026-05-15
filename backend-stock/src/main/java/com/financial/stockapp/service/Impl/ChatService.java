@@ -47,8 +47,7 @@ public class ChatService {
                 .defaultSystem(SystemPrompt.CRYPTO_BASE_PROMPT)
                 // Lấy tối đa 20 tin nhắn gần nhất làm ngữ cảnh
                 .defaultAdvisors(
-                        MessageChatMemoryAdvisor.builder(dbChatMemory)
-                                .build()
+                        MessageChatMemoryAdvisor.builder(dbChatMemory).build()
                 )
                 .build();
         this.chatRouterService = chatRouterService;
@@ -171,7 +170,6 @@ public class ChatService {
             promptSpec.toolCallbacks(activeTools.toArray(new ToolCallback[0]));
         }
 
-        // 6. Thực thi gọi API
         String response = promptSpec.call().content();
 
         return ChatResponse.builder()

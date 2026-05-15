@@ -614,7 +614,7 @@ const DashboardChart: React.FC<Props> = ({ symbol }) => {
 
       {/* ← THÊM MỚI: bọc position relative + div tooltip */}
       <div style={{ position: "relative" }}>
-        <button onClick={handleDownloadChart}>Chụp chart</button>
+        {/* <button onClick={handleDownloadChart}>Chụp chart</button> */}
         <div
           ref={chartContainerRef}
           style={{

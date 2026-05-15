@@ -52,13 +52,15 @@ spring:
           writetimeout: 5000
   ai:
     openai:
-      api-key:  ${GROQ_KEY} #${GEMINI_KEY}
-      base-url:  https://api.groq.com/openai #https://generativelanguage.googleapis.com/v1beta/openai
+      api-key:  ${GEMINI_KEY} #${GROQ_KEY} #
+      base-url:  https://generativelanguage.googleapis.com/v1beta/openai #https://api.groq.com/openai #
       chat:
         #completions-path: /v1beta/openai/chat/completions groq không cần
         options:
-          model:  llama-3.1-8b-instant #gemini-2.5-flash
-
+          model:  gemini-2.5-flash #llama-3.1-8b-instant #
+  #gemini-3-flash-preview
+  #gemini-2.5-flash-lite
+  #gemini-2.5-flash
   rabbitmq:
     host: localhost        # Địa chỉ server (nếu chạy Docker trên máy thì là localhost)
     port: 5672             # Cổng kết nối của RabbitMQ (mặc định)
@@ -79,9 +81,7 @@ spring:
         concurrency: 2              # Số lượng "công nhân" chạy song song tối thiểu
         max-concurrency: 5          # Số lượng "công nhân" tối đa khi hàng đợi bị quá tải
         prefetch: 1                 # Mỗi công nhân chỉ
-#gemini-3-flash-preview
-#gemini-2.5-flash-lite
-#gemini-2.5-flash
+
 server:
   port: 8080
 

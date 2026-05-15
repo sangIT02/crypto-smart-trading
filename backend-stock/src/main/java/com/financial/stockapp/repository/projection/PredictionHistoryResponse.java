@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public interface PredictionHistoryResponse {
+    BigDecimal getCurrentPrice();
     BigDecimal getPredictedPrice();
     BigDecimal getActualPrice();
     String getSignalAi();

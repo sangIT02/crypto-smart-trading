@@ -4,23 +4,24 @@ import {
     Brain, History,
     BarChart2, ChevronDown, ChartCandlestick
 } from 'lucide-react';
-import axios from 'axios';
 import { useCoinStore } from '../../store/coinStore';
 import type { DataAnalyze } from '../../components/RiskDrawer';
 import { predictionService } from '../../services/predictionService';
 import { CoinSelector } from '../../components/TabBtn';
 import RiskDrawer from '../../components/RiskDrawer';
+import { formatDate } from '../../helper/FormatDateTime';
 
 export type Signal = 'LONG' | 'SHORT' | 'FLAT';
 
 export type PredictionData = {
-    predictedPrice: string;
-    confidence: string;
+    predictedPrice: string | number;
+    confidence: string | number;
     signal: Signal;
-    changePercent: string;
-    directionAcc: string;
-    mae: string;
-    mape: string;
+    changePercent: string | number;
+    directionAcc: string | number;
+    mae: string | number;
+    rmse?: string | number;
+    mape?: string | number;
 };
 
 type PriceCoin = {
@@ -32,15 +33,32 @@ type PriceCoin = {
 };
 
 const TIMEFRAMES = ['1h', '4h', '1d'];
+const ERROR_VISUAL_MAX_PERCENT = 5;
 
-const fmt = (n?: number | null, d = 2) => {
-    if (n === null || n === undefined || isNaN(n)) return '--';
+const fmt = (value?: string | number | null, d = 2) => {
+    if (value === null || value === undefined || value === '--') return '--';
+    const n = typeof value === 'number' ? value : Number(String(value).replace('%', ''));
+    if (!Number.isFinite(n)) return '--';
 
     return n.toLocaleString('en-US', {
         minimumFractionDigits: d,
         maximumFractionDigits: d,
     });
 };
+
+const toNumber = (value?: string | number | null) => {
+    if (value === null || value === undefined || value === '--') return null;
+    const n = typeof value === 'number' ? value : Number(String(value).replace('%', ''));
+    return Number.isFinite(n) ? n : null;
+};
+
+const signedPercentText = (value: number | null) => {
+    if (value === null) return '--';
+    return `${value > 0 ? '+' : ''}${fmt(value)}%`;
+};
+
+const getHistoryEntryPrice = (item: PredictHistory) =>
+    item.currentPrice ?? item.entryPrice ?? item.priceAtPrediction ?? null;
 
 const SIGNAL_CONFIG: Record<Signal, {
     color: string; bg: string; border: string;
@@ -80,7 +98,7 @@ const StatCard: React.FC<{
 const Bar: React.FC<{ value: number; color: string }> = ({ value, color }) => (
     <div style={{ background: '#171717', borderRadius: 999, height: 5, width: '100%' }}>
         <div style={{
-            width: `${Math.min(value, 100)}%`, height: '100%',
+            width: `${Math.min(Math.max(value, 0), 100)}%`, height: '100%',
             background: color, borderRadius: 999, transition: 'width 0.5s ease',
         }} />
     </div>
@@ -100,6 +118,7 @@ const SectionTitle: React.FC<{ icon: React.ReactNode; title: string; dot: string
 
 const HistoryCard: React.FC<{ item: PredictHistory }> = ({ item }) => {
     const cfg = SIGNAL_CONFIG[item.signalAi];
+    const entryPrice = getHistoryEntryPrice(item);
     return (
         <div style={{
             background: '#070707', border: '1px solid #171717',
@@ -107,7 +126,7 @@ const HistoryCard: React.FC<{ item: PredictHistory }> = ({ item }) => {
             display: 'flex', flexDirection: 'column', gap: 8,
         }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 11, color: '#71717a' }}>{item.predictedAt}</span>
+                <span style={{ fontSize: 11, color: '#71717a' }}>{formatDate(item.predictedAt)}</span>
                 <span style={{
                     display: 'flex', alignItems: 'center', gap: 4,
                     fontSize: 10, fontWeight: 700,
@@ -121,6 +140,10 @@ const HistoryCard: React.FC<{ item: PredictHistory }> = ({ item }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                 <span style={{ fontSize: 12, color: '#71717a' }}>Dự đoán</span>
                 <span style={{ fontSize: 12, color: '#f3f4f6' }}>${fmt(item.predictedPrice)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontSize: 12, color: '#71717a' }}>Giá lúc đoán</span>
+                <span style={{ fontSize: 12, color: '#f3f4f6' }}>${fmt(entryPrice)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                 <span style={{ fontSize: 12, color: '#71717a' }}>Thực tế</span>
@@ -145,13 +168,21 @@ const HistoryCard: React.FC<{ item: PredictHistory }> = ({ item }) => {
 };
 
 type model = {
-    id: string;
-    name: string;
+    id: string | number;
+    name?: string;
+    modelName?: string;
+    directionAcc?: string | number;
+    mae?: string | number;
+    rmse?: string | number;
+    mape?: string | number;
 }
 
 type PredictHistory = {
-    predictedPrice: number,
-    actualPrice: number,
+    predictedPrice: string | number,
+    actualPrice: string | number,
+    currentPrice?: string | number,
+    entryPrice?: string | number,
+    priceAtPrediction?: string | number,
     signalAi: Signal,
     isCorrect: number,
     predictedAt: string
@@ -167,14 +198,15 @@ export default function AIPredictionPage() {
         changePercent: "--",
         directionAcc: "--",
         mae: "--",
+        rmse: "--",
         mape: "--",
     });
     const [openRisk, setOpenRisk] = useState(false);
-    const [activeTf, setActiveTf] = useState('1d');
+    const [activeTf, setActiveTf] = useState('4h');
     const [activeModel, setActiveModel] = useState('LSTM');
     const [isOpenSearch, setIsOpenSearch] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error] = useState<string | null>(null);
     const [models, setModels] = useState<model[]>([]);
     const [coinPrice, setCoinPrice] = useState<PriceCoin>({
         symbol: "BTC",
@@ -187,8 +219,8 @@ export default function AIPredictionPage() {
     const [predictHistory, setPredictHistory] = useState<PredictHistory[]>([])
 
     const fetchPredictHistory = async () => {
-        const response = await predictionService.getHistoriPredict(selectedCoin.id)
-        const history: PredictHistory[] = await response.data.content
+        const response = await predictionService.getHistoriPredict()
+        const history: PredictHistory[] = await response.data
         console.log(history)
         setPredictHistory(history)
     }
@@ -263,8 +295,8 @@ export default function AIPredictionPage() {
     }, [selectedCoin]);
 
     const cfg = SIGNAL_CONFIG[data?.signal ?? 'FLAT'];
-    const change = parseFloat(data?.changePercent ?? "0");
-    const isUp = change >= 0;
+    const coinChangePercent = toNumber(coinPrice?.priceChangePercent) ?? 0;
+    const isUp = coinChangePercent >= 0;
 
     if (loading) return (
             <div style={{ color: '#71717a', padding: 32, textAlign: 'center' }}>
@@ -279,6 +311,64 @@ export default function AIPredictionPage() {
     );
 
     if (!data) return null;
+
+    // Tính toán biến hiển thị cho phần Chart mới
+    const currentPrice = coinPrice?.lastPrice || 0;
+    const selectedModelMetric = models.find(m => (m.name ?? m.modelName) === activeModel);
+    const targetPrice = toNumber(data.predictedPrice);
+    const confidenceValue = toNumber(data.confidence);
+    const maePercent = toNumber(data.mae) ?? toNumber(selectedModelMetric?.mae);
+    const rmsePercent = toNumber(data.rmse) ?? toNumber(selectedModelMetric?.rmse) ?? toNumber(data.mape) ?? toNumber(selectedModelMetric?.mape);
+    const directionAccValue = toNumber(data.directionAcc) ?? toNumber(selectedModelMetric?.directionAcc);
+    
+    const predictedChangePercent = currentPrice > 0 && targetPrice !== null
+        ? ((targetPrice - currentPrice) / currentPrice) * 100
+        : toNumber(data.changePercent);
+    const isTargetUp = (predictedChangePercent ?? 0) >= 0;
+    const diff = currentPrice > 0 && targetPrice !== null ? Math.abs(targetPrice - currentPrice) : null;
+    const diffPercent = predictedChangePercent !== null ? Math.abs(predictedChangePercent) : null;
+    const normalizedDirectionAcc = directionAccValue !== null && Math.abs(directionAccValue) <= 1
+        ? directionAccValue * 100
+        : directionAccValue;
+    const maeUsdDeviation = maePercent !== null && currentPrice > 0
+        ? (currentPrice * maePercent) / 100
+        : null;
+    const rmseUsdDeviation = rmsePercent !== null && currentPrice > 0
+        ? (currentPrice * rmsePercent) / 100
+        : null;
+    const maeProgress = maePercent !== null
+        ? Math.min((Math.abs(maePercent) / ERROR_VISUAL_MAX_PERCENT) * 100, 100)
+        : 0;
+    const rmseProgress = rmsePercent !== null
+        ? Math.min((Math.abs(rmsePercent) / ERROR_VISUAL_MAX_PERCENT) * 100, 100)
+        : 0;
+    const historyCorrectCount = predictHistory.filter(h => h.isCorrect === 1).length;
+    const historyWrongCount = predictHistory.filter(h => h.isCorrect === -1).length;
+    const historyPendingCount = predictHistory.filter(h => h.isCorrect !== 1 && h.isCorrect !== -1).length;
+    const metricRows = [
+        {
+            label: 'Đúng chiều',
+            value: normalizedDirectionAcc !== null ? `${fmt(normalizedDirectionAcc)}%` : '--',
+            pct: normalizedDirectionAcc ?? 0,
+            color: '#0ecb81',
+        },
+        {
+            label: 'MAE',
+            value: maePercent !== null
+                ? `${fmt(maePercent)}% (~$${fmt(maeUsdDeviation)})`
+                : '--',
+            pct: maeProgress,
+            color: '#60a5fa',
+        },
+        {
+            label: 'RMSE',
+            value: rmsePercent !== null
+                ? `${fmt(rmsePercent)}% (~$${fmt(rmseUsdDeviation)})`
+                : '--',
+            pct: rmseProgress,
+            color: '#f0b90b',
+        },
+    ];
 
     return (
         <>
@@ -404,13 +494,13 @@ export default function AIPredictionPage() {
 
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {models.map(m => (
-                            <button key={m.id} onClick={() => setActiveModel(m.name)} style={{
-                                background: activeModel === m.name ? 'rgba(240,185,11,0.10)' : '#070707',
-                                border: `1px solid ${activeModel === m.name ? '#4a380e' : '#1a1a1a'}`,
-                                color: activeModel === m.name ? '#f0b90b' : '#71717a',
-                                fontSize: 11, fontWeight: activeModel === m.name ? 700 : 500,
+                            <button key={m.id} onClick={() => setActiveModel(m.name ?? m.modelName ?? '')} style={{
+                                background: activeModel === (m.name ?? m.modelName) ? 'rgba(240,185,11,0.10)' : '#070707',
+                                border: `1px solid ${activeModel === (m.name ?? m.modelName) ? '#4a380e' : '#1a1a1a'}`,
+                                color: activeModel === (m.name ?? m.modelName) ? '#f0b90b' : '#71717a',
+                                fontSize: 11, fontWeight: activeModel === (m.name ?? m.modelName) ? 700 : 500,
                                 padding: '7px 10px', borderRadius: 10, cursor: 'pointer',
-                            }}>{m.name}</button>
+                            }}>{m.name ?? m.modelName}</button>
                         ))}
 
                         
@@ -428,14 +518,14 @@ export default function AIPredictionPage() {
                     />
                     <StatCard
                         label="Giá dự đoán"
-                        value={<span style={{ color: '#60a5fa' }}>${fmt(parseFloat(data.predictedPrice))}</span>}
+                        value={<span style={{ color: '#60a5fa' }}>${fmt(targetPrice)}</span>}
                         sub={<span style={{ color: '#8b8f97' }}>Target: {activeTf} tới</span>}
                         accent="rgba(96,165,250,0.22)"
                     />
                     <StatCard
                         label="Độ tin cậy"
-                        value={<span style={{ color: '#f0b90b' }}>{data.confidence}%</span>}
-                        sub={<Bar value={parseFloat(data.confidence)} color="#f0b90b" />}
+                        value={<span style={{ color: '#f0b90b' }}>{confidenceValue !== null ? `${fmt(confidenceValue)}%` : '--'}</span>}
+                        sub={<Bar value={confidenceValue ?? 0} color="#f0b90b" />}
                         accent="rgba(240,185,11,0.22)"
                     />
                     <StatCard
@@ -482,39 +572,74 @@ export default function AIPredictionPage() {
                     }}>
                         <SectionTitle
                             icon={<BarChart2 size={14} color="#fff" />}
-                            title="Biểu đồ dự đoán giá"
+                            title="Mục tiêu giá dự kiến"
                             dot="rgba(96,165,250,0.22)"
                         />
                         <div style={{
                             background: '#070707', border: '1px solid #171717',
-                            borderRadius: 12, height: 260,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexDirection: 'column', gap: 8,
-                            color: '#71717a', fontSize: 13,
+                            borderRadius: 12, padding: '24px',
+                            display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 24,
+                            height: 260
                         }}>
-                            <svg width="72" height="42" viewBox="0 0 72 42" fill="none">
-                                <polyline points="2,36 12,28 22,30 34,18 44,20 54,12 64,14"
-                                    stroke="#60a5fa" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                                <polyline points="54,12 62,8 70,4"
-                                    stroke="#0ecb81" strokeWidth="1.7" strokeDasharray="3 2"
-                                    strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            Tích hợp chart tại đây
-                        </div>
-                        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-                            {[
-                                { color: '#60a5fa', dash: false, area: false, label: 'Giá thực tế' },
-                                { color: '#0ecb81', dash: true, area: false, label: 'Dự đoán' },
-                                { color: 'rgba(14,203,129,0.12)', dash: false, area: true, label: 'Khoảng tin cậy' },
-                            ].map(l => (
-                                <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    {l.area
-                                        ? <div style={{ width: 20, height: 8, background: l.color, borderRadius: 2 }} />
-                                        : <div style={{ width: 20, height: 0, borderTop: `2px ${l.dash ? 'dashed' : 'solid'} ${l.color}` }} />
-                                    }
-                                    <span style={{ fontSize: 11, color: '#71717a' }}>{l.label}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                                <div>
+                                    <div style={{ fontSize: 12, color: '#71717a', marginBottom: 4 }}>Giá hiện tại (Live)</div>
+                                    <div style={{ fontSize: 18, fontWeight: 700, color: '#f3f4f6' }}>${fmt(currentPrice)}</div>
                                 </div>
-                            ))}
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: 12, color: '#71717a', marginBottom: 4 }}>Dự đoán đóng nến ({activeTf})</div>
+                                    <div style={{ fontSize: 18, fontWeight: 700, color: isTargetUp ? '#0ecb81' : '#f6465d' }}>
+                                        ${fmt(targetPrice)}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Thanh Process Bar thể hiện Target */}
+                            <div style={{ position: 'relative', height: 60, display: 'flex', alignItems: 'center' }}>
+                                {/* Đường line nền */}
+                                <div style={{ position: 'absolute', width: '100%', height: 2, background: '#1f1f1f', top: '50%', transform: 'translateY(-50%)' }} />
+                                
+                                {/* Đường dẫn hướng mũi tên */}
+                                <div style={{ 
+                                    position: 'absolute', 
+                                    width: '50%', // Mô phỏng khoảng cách
+                                    height: 2, 
+                                    background: isTargetUp ? '#0ecb81' : '#f6465d', 
+                                    left: isTargetUp ? '10%' : '40%', // Đảo ngược hướng tùy LONG/SHORT
+                                    top: '50%', transform: 'translateY(-50%)' 
+                                }} />
+
+                                {/* Vùng sai số MAE (Khoảng tin cậy) */}
+                                <div style={{
+                                    position: 'absolute',
+                                    width: '20%', // Chiều rộng vùng MAE
+                                    height: 24,
+                                    background: isTargetUp ? 'rgba(14,203,129,0.15)' : 'rgba(246,70,93,0.15)',
+                                    border: `1px dashed ${isTargetUp ? '#0ecb81' : '#f6465d'}`,
+                                    borderRadius: 4,
+                                    left: '50%', // Đặt ở vị trí mũi tên đến
+                                    top: '50%', transform: 'translateY(-50%)'
+                                }}>
+                                    <span style={{ position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)', fontSize: 10, color: '#71717a', whiteSpace: 'nowrap' }}>
+                                        ±${fmt(maeUsdDeviation)} (MAE≈{fmt(maePercent)}%)
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#111', padding: '10px 14px', borderRadius: 8 }}>
+                                <span style={{ fontSize: 12, color: '#9ca3af' }}>Biên độ dự kiến:</span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: '#f3f4f6' }}>
+                                    {diffPercent !== null ? `${isTargetUp ? '+' : '-'}${fmt(diffPercent)}%` : '--'} (${fmt(diff)})
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#111', padding: '10px 14px', borderRadius: 8 }}>
+                                <span style={{ fontSize: 12, color: '#9ca3af' }}>Sai số ước tính:</span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: '#f3f4f6' }}>
+                                    {maeUsdDeviation !== null || rmseUsdDeviation !== null
+                                        ? `MAE ≈ $${fmt(maeUsdDeviation)} | RMSE ≈ $${fmt(rmseUsdDeviation)}`
+                                        : '--'}
+                                </span>
+                            </div>
                         </div>
                     </div>
 
@@ -541,7 +666,7 @@ export default function AIPredictionPage() {
                                                 borderRadius: 999, border: '1px solid #262626',
                                             }}>{m.name}</span>
                                         ))} */}
-                                        LSTM
+                                        {activeModel}
                                     </div>
                                 )
                             },
@@ -552,8 +677,15 @@ export default function AIPredictionPage() {
                                     </span>
                                 )
                             },
-                            { label: '% thay đổi dự đoán', value: <span style={{ color: '#0ecb81', fontWeight: 700 }}>+{data.changePercent}%</span> },
-                            { label: 'Giá dự đoán', value: <span style={{ color: '#f3f4f6' }}>${fmt(parseFloat(data.predictedPrice))}</span> },
+                            {
+                                label: '% thay đổi dự đoán',
+                                value: (
+                                    <span style={{ color: isTargetUp ? '#0ecb81' : '#f6465d', fontWeight: 700 }}>
+                                        {signedPercentText(predictedChangePercent)}
+                                    </span>
+                                )
+                            },
+                            { label: 'Giá dự đoán', value: <span style={{ color: '#f3f4f6' }}>${fmt(targetPrice)}</span> },
                         ].map(row => (
                             <div key={row.label} style={{
                                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -563,12 +695,10 @@ export default function AIPredictionPage() {
                                 <span style={{ fontSize: 13, textAlign: 'right' }}>{row.value}</span>
                             </div>
                         ))}
-                        <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600, marginTop: 2 }}>Độ chính xác mô hình</span>
-                        {[
-                            { label: 'Đúng chiều', value: `${data.directionAcc}%`, pct: data.directionAcc, color: '#0ecb81' },
-                            { label: 'MAE', value: `$${data.mae}`, pct: 60, color: '#60a5fa' },
-                            { label: 'MAPE', value: `${data.mape}%`, pct: 45, color: '#f0b90b' },
-                        ].map(m => (
+                        <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600, marginTop: 2 }}>
+                            Sai số mô hình (% return, thang hiển thị tối đa {ERROR_VISUAL_MAX_PERCENT}%)
+                        </span>
+                        {metricRows.map(m => (
                             <div key={m.label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ fontSize: 11, color: '#71717a' }}>{m.label}</span>
@@ -602,12 +732,22 @@ export default function AIPredictionPage() {
                             <span style={{ fontSize: 13, fontWeight: 700, color: '#f3f4f6' }}>Lịch sử dự đoán gần đây</span>
                         </div>
                         <span style={{
-                            fontSize: 11, fontWeight: 700, color: '#0ecb81',
-                            background: 'rgba(14,203,129,0.1)',
+                            fontSize: 11, fontWeight: 700, color: '#f3f4f6',
+                            background: 'rgba(255,255,255,0.04)',
                             padding: '4px 10px', borderRadius: 999,
-                            border: '1px solid rgba(14,203,129,0.2)'
+                            border: '1px solid #242424'
                         }}>
-                            Đúng {predictHistory.filter(h => h.isCorrect).length}/{predictHistory.length}
+                            <span style={{ color: '#0ecb81' }}>Đúng {historyCorrectCount}</span>
+                            <span style={{ color: '#71717a', margin: '0 6px' }}>/</span>
+                            <span style={{ color: '#f6465d' }}>Sai {historyWrongCount}</span>
+                            <span style={{ color: '#71717a', margin: '0 6px' }}>/</span>
+                            <span>Tổng {predictHistory.length}</span>
+                            {historyPendingCount > 0 && (
+                                <>
+                                    <span style={{ color: '#71717a', margin: '0 6px' }}>/</span>
+                                    <span style={{ color: '#ef9f27' }}>Chờ {historyPendingCount}</span>
+                                </>
+                            )}
                         </span>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10 }}>

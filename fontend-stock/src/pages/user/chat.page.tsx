@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { chatService, type ChatResponse } from "../../services/chatService";
 import AiMessage from "../../components/AiMessage";
 
@@ -85,12 +85,33 @@ export const ChatBot = () => {
     const [input, setInput] = useState("");
     const [status, setStatus] = useState<AssistantStatus>("online");
     const messagesContainerRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
     const [sessionId, setSessionId] = useState<string | null>(null);
+
     useEffect(() => {
         if (messagesContainerRef.current) {
             messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
         }
     }, [messages]);
+
+    useEffect(() => {
+        if (!inputRef.current) return;
+        inputRef.current.style.height = "auto";
+        inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
+    }, [input]);
+
+    const canSend = input.trim().length > 0 && status !== "thinking";
+
+    const handleSubmit = () => {
+        if (!canSend) return;
+        sendMessage(sessionId, input);
+    };
+
+    const handleInputKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (event.key !== "Enter" || event.shiftKey) return;
+        event.preventDefault();
+        handleSubmit();
+    };
 
     async function sendMessage(currentSessionId: string | null, messageContent: string) {
     if (!messageContent.trim()) return;
@@ -305,7 +326,7 @@ export const ChatBot = () => {
 
                         <div
                             style={{
-                                padding: 16,
+                                padding: "14px 16px",
                                 borderTop: "1px solid #161616",
                                 background: "#060606",
                             }}
@@ -313,57 +334,66 @@ export const ChatBot = () => {
                             <div
                                 style={{
                                     display: "flex",
-                                    gap: 10,
-                                    alignItems: "center",
+                                    gap: 8,
+                                    alignItems: "flex-end",
+                                    background: "#050505",
+                                    border: "1px solid #1f1f1f",
+                                    borderRadius: 16,
+                                    padding: "8px 8px 8px 14px",
+                                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
                                 }}
                             >
                                 <div
                                     style={{
                                         flex: 1,
-                                        background: "#050505",
-                                        border: "1px solid #1a1a1a",
-                                        borderRadius: 14,
-                                        padding: "12px 14px",
-                                        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
+                                        minHeight: 40,
+                                        display: "flex",
+                                        alignItems: "center",
                                     }}
                                 >
                                     <textarea
+                                        ref={inputRef}
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
+                                        onKeyDown={handleInputKeyDown}
                                         placeholder="Nhập câu hỏi cho trợ lí giao dịch..."
-                                        rows={3}
+                                        rows={1}
                                         style={{
                                             width: "100%",
+                                            minHeight: 24,
+                                            maxHeight: 120,
                                             resize: "none",
                                             border: "none",
                                             outline: "none",
                                             background: "transparent",
                                             color: "#f3f4f6",
-                                            fontSize: 13,
+                                            fontSize: 14,
                                             fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
-                                            lineHeight: 1.7,
+                                            lineHeight: 1.55,
+                                            padding: "8px 0",
+                                            overflowY: "auto",
                                         }}
                                     />
                                 </div>
 
                                 <button
                                     type="button"
-                                    onClick={() => sendMessage(sessionId, input)}
-                                    disabled={!input.trim()}
+                                    onClick={handleSubmit}
+                                    disabled={!canSend}
                                     style={{
-                                        width: 48,
-                                        height: 48,
+                                        width: 42,
+                                        height: 42,
                                         borderRadius: 12,
-                                        cursor: !input.trim() ? "not-allowed" : "pointer",
-                                        background: !input.trim()
+                                        cursor: !canSend ? "not-allowed" : "pointer",
+                                        background: !canSend
                                             ? "#1a1a1a"
                                             : "linear-gradient(180deg, #f0b90b 0%, #c9920a 100%)",
-                                        border: !input.trim() ? "1px solid #242424" : "1px solid #e0ae10",
-                                        color: !input.trim() ? "#666" : "#111",
+                                        border: !canSend ? "1px solid #242424" : "1px solid #e0ae10",
+                                        color: !canSend ? "#666" : "#111",
                                         display: "flex",
                                         alignItems: "center",
                                         justifyContent: "center",
-                                        boxShadow: !input.trim() ? "none" : "0 8px 22px rgba(240,185,11,0.16)",
+                                        boxShadow: !canSend ? "none" : "0 8px 22px rgba(240,185,11,0.16)",
                                         flexShrink: 0,
                                     }}
                                 >
@@ -530,26 +560,6 @@ function MessageBubble({ message }: { message: ChatMessage }) {
     );
 }
 
-function StatMini({ title, value }: { title: string; value: string | number }) {
-    return (
-        <div style={{ background: "#050505", border: "1px solid #161616", borderRadius: 12, padding: "12px 12px" }}>
-            <div style={{ fontSize: 10, color: "#6b7280", letterSpacing: 1.1, textTransform: "uppercase", fontWeight: 600, marginBottom: 6 }}>
-                {title}
-            </div>
-            <div style={{ fontSize: 18, color: "#fafafa", fontWeight: 700 }}>{value}</div>
-        </div>
-    );
-}
-
-function FeatureRow({ title, desc }: { title: string; desc: string }) {
-    return (
-        <div style={{ background: "#070707", border: "1px solid #171717", borderRadius: 14, padding: "12px 12px" }}>
-            <div style={{ fontSize: 12, color: "#f3f4f6", fontWeight: 600, marginBottom: 4 }}>{title}</div>
-            <div style={{ fontSize: 11, color: "#8b8f97", lineHeight: 1.7 }}>{desc}</div>
-        </div>
-    );
-}
-
 const tagGoldStyle: React.CSSProperties = {
     fontSize: 10,
     padding: "4px 9px",
@@ -560,18 +570,6 @@ const tagGoldStyle: React.CSSProperties = {
     fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
     letterSpacing: 0.3,
 };
-
-function BotRoundIcon() {
-    return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="4" y="8" width="16" height="12" rx="2" />
-            <path d="M12 4v4" />
-            <path d="M9 14h.01" />
-            <path d="M15 14h.01" />
-            <path d="M8 2h8" />
-        </svg>
-    );
-}
 
 function SendIcon() {
     return (

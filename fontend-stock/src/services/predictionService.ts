@@ -22,9 +22,9 @@ export const predictionService = {
             },
         });
     },
-    getHistoriPredict(id:string){
+    getHistoriPredict(){
         const accessToken = getAccessToken();
-        return axios.get(`http://localhost:8080/api/prediction/history?coinId=${id}&page=${0}&size=${8}`, {
+        return axios.get(`http://localhost:8080/api/prediction/history`, {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
             },

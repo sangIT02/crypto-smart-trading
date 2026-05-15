@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
@@ -34,11 +35,8 @@ public class PredictionController {
     }
 
     @GetMapping("/history")
-    public Page<PredictionHistoryResponse> getHistory(
-            @RequestParam int coinId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "8") int size
-    ){
-        return predictionService.getHistory(coinId, page, size);
+    public List<PredictionHistoryResponse> getHistory(){
+        int user_id = SecurityUtils.getCurrentUserId();
+        return predictionService.getHistory(user_id);
     }
 }
