@@ -1,7 +1,7 @@
 import axios from "axios";
 import { getAccessToken } from "./auth";
 
-const BASE_URL = "http://localhost:8080/api/prediction"; 
+const BASE_URL = "https://crypto-smart-trading.onrender.com/api/prediction"; 
 export const predictionService = {
     getAiSignal(symbol:string, timeframe:string, model:string, currentPrice:number){
         const accessToken = getAccessToken();
@@ -16,7 +16,7 @@ export const predictionService = {
 
     getAllModels(){
         const accessToken = getAccessToken();
-        return axios.get("http://localhost:8080/api/models",{
+        return axios.get("https://crypto-smart-trading.onrender.com/api/models",{
             headers: {
                 Authorization: `Bearer ${accessToken}`,
             },
@@ -24,7 +24,7 @@ export const predictionService = {
     },
     getHistoriPredict(){
         const accessToken = getAccessToken();
-        return axios.get(`http://localhost:8080/api/prediction/history`, {
+        return axios.get(`https://crypto-smart-trading.onrender.com/api/prediction/history`, {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
             },

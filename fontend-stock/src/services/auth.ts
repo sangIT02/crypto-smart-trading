@@ -19,7 +19,7 @@ export const clearTokens = () => {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
 };
-const API_URL = "http://localhost:8080/api/auth";
+const API_URL = "https://crypto-smart-trading.onrender.com/api/auth";
 
 export const authService = {
   login: (email: string, password: string) => {

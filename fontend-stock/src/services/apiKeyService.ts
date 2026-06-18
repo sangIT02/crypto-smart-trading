@@ -6,7 +6,7 @@ export type ApiKeyItem = {
     secretKey: string;
 };
 
-const base_url = "http://localhost:8080/api/account";
+const base_url = "https://crypto-smart-trading.onrender.com/api/account";
 
 export const apiKeyService = {
     addKey(nameAccount: string, apiKey: string, secretKey: string){

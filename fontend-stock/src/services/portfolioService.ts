@@ -46,7 +46,7 @@ export interface PositionItem {
     positionAmt: string;   // Khối lượng lệnh (âm là Short, dương là Long)
     updateTime: number;
 }
-const base_url = "http://localhost:8080/api/account"
+const base_url = "https://crypto-smart-trading.onrender.com/api/account"
 
 export const portfolioService = {
     getBalance(){

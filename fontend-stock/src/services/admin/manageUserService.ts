@@ -1,7 +1,7 @@
 import axios from "axios";
 import { getAccessToken } from "../auth";
 
-const base_url = "http://localhost:8080/api/admin/user";
+const base_url = "https://crypto-smart-trading.onrender.com/api/admin/user";
 
 export const manageUserService = {
   getAllUsers: (page: number, size: number) => {

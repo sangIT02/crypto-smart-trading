@@ -1,6 +1,5 @@
 import axios from "axios";
 import { getAccessToken } from "./auth";
-import { Delete, Pause } from "lucide-react";
 
 export type ConditionType = "PRICE_ABOVE" | "PRICE_BELOW" | "MA_CROSS_UP" | "MA_CROSS_DOWN";
 export type AlertMode = "ONCE" | "RECURRING";
@@ -18,7 +17,8 @@ export interface AlertCreateRequest {
   alertMode: AlertMode;
   note?: string;            // Dấu "?" vì ghi chú có thể để trống
 }
-const base_url = "http://localhost:8080/api/alert";
+const apiBaseUrl = import.meta.env.VITE_API_URL || "https://crypto-smart-trading.onrender.com";
+const base_url = `${apiBaseUrl}/api/alert`;
 
 export const alertPriceService ={
   CreateAlertsPrice(body: AlertCreateRequest) {

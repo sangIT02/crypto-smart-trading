@@ -24,7 +24,7 @@ export type Dasboardata = {
     totalWarning: number,
 }
 // 1. Cấu hình đường dẫn gốc của Backend Spring Boot
-const API_URL = "http://localhost:8080/api/users"; 
+const API_URL = "https://crypto-smart-trading.onrender.com/api/users"; 
 
 // 2. Định nghĩa object userService chứa các hàm gọi API
 const userService = {

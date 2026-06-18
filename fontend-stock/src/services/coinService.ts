@@ -1,7 +1,7 @@
 import axios from "axios";
 import { getAccessToken } from "./auth";
 
-const baseUrl = "http://localhost:8080/api/alert/coin-pair";
+const baseUrl = "https://crypto-smart-trading.onrender.com/api/alert/coin-pair";
 
 export type CoinPairResponse = {
   data: CoinPairData[];
@@ -42,7 +42,7 @@ export const coinService = {
 
   getMaSignals(symbol: string, interval: string) {
     const token = getAccessToken();
-    return axios.get(`http://localhost:8080/api/ma/all-ma?symbol=${symbol}&interval=${interval}`, {
+    return axios.get(`https://crypto-smart-trading.onrender.com/api/ma/all-ma?symbol=${symbol}&interval=${interval}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

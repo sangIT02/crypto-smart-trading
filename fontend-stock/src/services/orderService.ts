@@ -2,7 +2,7 @@ import axios from "axios";
 import { getAccessToken } from "./auth";
 import { create } from "zustand";
 
-const base_url = "http://localhost:8080/api/order";
+const base_url = "https://crypto-smart-trading.onrender.com/api/order";
 
 export const orderService = {
   getLeverageMargin(symbol: string) {

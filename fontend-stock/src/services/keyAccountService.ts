@@ -1,7 +1,7 @@
 import axios from "axios";
 import { getAccessToken } from "./auth";
 
-const base_url = "http://localhost:8080/api/account"; 
+const base_url = "https://crypto-smart-trading.onrender.com/api/account"; 
 
 export const keyAccountService = {
     addKeyAccount(userId: number, apiKey: string, secretKey:string, nameAccount:string){
