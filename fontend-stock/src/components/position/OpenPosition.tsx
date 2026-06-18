@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   positionService,
   type PositionDTO,
 } from "../../services/positionService";
 import { toast } from "react-toastify";
-import { useSocketStore } from "../../services/useSocketStore";
 import { useSocketStorePrice } from "../../store/useSocketStore";
+import { usePositionRefreshStore } from "../../store/positionRefreshStore";
+import axios from "axios";
 
 const formatNumber = (value: number, digits = 2) =>
   value.toLocaleString("en-US", {
@@ -15,21 +16,32 @@ const formatNumber = (value: number, digits = 2) =>
 
 export const OpenPosition: React.FC = () => {
   const prices = useSocketStorePrice((state) => state.prices);
+  const refreshVersion = usePositionRefreshStore((state) => state.refreshVersion);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [positionList, setPositionList] = useState<PositionDTO[]>([]);
-  const fetchPositions = async () => {
+  const fetchPositions = useCallback(async () => {
     try {
-      const response = await positionService.getPositions();
-      const data: PositionDTO[] = await response.data;
-      setPositionList(data);
-    } catch (error: any) {
-      const message = error.response.data.message;
-      const toastMessage =
-        error instanceof Error ? message : "Đã có lỗi xảy ra khi lấy vị thế.";
-      toast.error(toastMessage);
-      console.error("Error fetching positions:", error);
-    }
-  };
+  const response = await positionService.getPositions();
+  const data: PositionDTO[] = response.data; // Bỏ await ở đây vì response.data không phải là Promise
+  setPositionList(data);
+} catch (error: unknown) {
+  // Mặc định câu thông báo lỗi chung
+  let toastMessage = "Đã có lỗi xảy ra khi lấy vị thế.";
+
+  // 1. Kiểm tra nếu đây là lỗi từ API gọi bằng Axios
+  if (axios.isAxiosError(error)) {
+    // Dùng optional chaining (?.) để phòng trường hợp backend không trả về data hoặc message
+    toastMessage = error.response?.data?.message || toastMessage;
+  } 
+  // 2. Kiểm tra nếu đây là lỗi chung của JavaScript (lỗi mạng, lỗi cú pháp...)
+  else if (error instanceof Error) {
+    toastMessage = error.message;
+  }
+
+  toast.error(toastMessage);
+  console.error("Error fetching positions:", error);
+}
+  }, []);
   const handleClosePosition = async (symbol: string, positionAmt: string) => {
     try {
       const amount = parseFloat(positionAmt);
@@ -48,16 +60,18 @@ export const OpenPosition: React.FC = () => {
       });
       toast.success("Đã gửi lệnh thành công!");
       console.log("Close position response:", response.data);
-
-      // Ở đây bạn có thể trigger thêm việc refresh lại UI để số dư cập nhật
+      await fetchPositions();
     } catch (error) {
       console.error("Error closing position:", error);
     }
   };
 
   useEffect(() => {
-    fetchPositions();
-  }, []);
+    const fetchData = async () => {
+      await fetchPositions();
+    };
+    fetchData();
+  }, [fetchPositions, refreshVersion]);
 
   return (
     <div className="position-page bg-black text-light min-vh-60">
@@ -306,3 +320,4 @@ export const OpenPosition: React.FC = () => {
     </div>
   );
 };
+

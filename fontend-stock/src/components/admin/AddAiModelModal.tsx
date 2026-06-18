@@ -6,13 +6,11 @@ import { toast } from "react-toastify";
 type AddAiModelModalProps = {
   show: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => void;
 };
 
 export const AddAiModelModal: React.FC<AddAiModelModalProps> = ({
   show,
   onClose,
-  onSubmit,
 }) => {
   const [symbol, setSymbol] = useState("BTCUSDT");
   const [interval, setInterval] = useState("4h");

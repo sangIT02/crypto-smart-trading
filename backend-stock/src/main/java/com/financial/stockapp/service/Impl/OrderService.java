@@ -13,16 +13,19 @@ import com.financial.stockapp.repository.projection.SymbolOrderProjection;
 import com.financial.stockapp.repository.projection.TotalBuySellProjection;
 import com.financial.stockapp.util.BinanceSignatureUtils;
 import com.financial.stockapp.util.BinanceTimestampUtils;
+import com.financial.stockapp.util.OrderValidateUtils;
 import com.financial.stockapp.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,7 +40,7 @@ public class OrderService {
     private final BinanceSignatureUtils signatureUtils;
     private final BinanceTimestampUtils timestampUtils;
     private final IOrderRepository orderRepository;
-
+    private final RedisTemplate<String,Object> redisTemplate;
     public ChangeMarginTypeResponse changeMarginType(ChangeMarginTypeRequest request){
         int userID = SecurityUtils.getCurrentUserId();
         GetAPIKeyDTO key = accountRepository.getByUserId(userID);
@@ -271,15 +274,18 @@ public class OrderService {
         String apiKey = encryptionService.decrypt(key.getApiKey());
         String secretKey = encryptionService.decrypt(key.getSecretKey());
 
+        SymbolInfoDTO dto = (SymbolInfoDTO) redisTemplate.opsForHash().get("binance:symbols", payload.getSymbol());
+
         long timestamp = timestampUtils.getBinanceServerTime();
         long recvWindow = 10000L; // Nới lỏng lên 60 giây
 
+        BigDecimal quantity = OrderValidateUtils.formatQuantity(new BigDecimal(payload.getQuantity()), dto.getStepSize());
         // 3. Tạo query string - PHẢI nối thêm recvWindow vào chuỗi để ký
-        String queryString = String.format("symbol=%s&side=%s&type=%s&quantity=%s&newOrderRespType=RESULT&recvWindow=10000&timestamp=%d",
+        String queryString = String
+                .format("symbol=%s&side=%s&type=%s&quantity=%s&newOrderRespType=RESULT&recvWindow=10000&timestamp=%d",
                 payload.getSymbol(),
                 payload.getSide(),
-                payload.getType(),
-                payload.getQuantity(),
+                payload.getType(), quantity,
                 timestamp);
         // 4. Ký query string
         String signature = signatureUtils.sign(queryString,secretKey);
@@ -290,7 +296,7 @@ public class OrderService {
                         .queryParam("symbol",payload.getSymbol())
                         .queryParam("side",payload.getSide())
                         .queryParam("type",payload.getType())
-                        .queryParam("quantity",payload.getQuantity())
+                        .queryParam("quantity",quantity)
                         .queryParam("newOrderRespType","RESULT")
                         .queryParam("recvWindow", 10000) // BẮT BUỘC THÊM DÒNG NÀY
                         .queryParam("timestamp",timestamp)

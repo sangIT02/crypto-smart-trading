@@ -9,6 +9,7 @@ import {
 } from "../../services/orderService";
 import { TPSL } from "./TPSL";
 import type { MarginMode } from "./OrderForm";
+import { usePositionRefreshStore } from "../../store/positionRefreshStore";
 type MarketOrderProps = {
     symbol: string;
     leverage: number;
@@ -21,6 +22,9 @@ type MarketOrderProps = {
 export const MarketOrder = ({ symbol, leverage, setLeverage, marginMode, setMarginMode, marketPrice }: MarketOrderProps & { marketPrice: number | null }) => {
   const balance = 5000;
   const bestBidOfferPrice = marketPrice || 1 ;
+  const triggerPositionRefresh = usePositionRefreshStore(
+    (state) => state.triggerRefresh,
+  );
 
   const [showSltp, setShowSltp] = useState(false);
   const [percent, setPercent] = useState(0);
@@ -70,7 +74,9 @@ export const MarketOrder = ({ symbol, leverage, setLeverage, marginMode, setMarg
       const response = await orderService.createMarketOrder(payload);
       const data = await response.data;
       console.log("ORDER RESPONSE:", data);
+      
       toast.success("Đặt lệnh market thành công!");
+      triggerPositionRefresh();
     } catch (error: any) {
       if (error.response && error.response.data) {
         const { message, binanceCode } = error.response.data;

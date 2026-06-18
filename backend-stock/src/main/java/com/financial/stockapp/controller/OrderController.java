@@ -5,6 +5,7 @@ import com.financial.stockapp.dto.request.ChangeLeverageRequest;
 import com.financial.stockapp.dto.request.ChangeMarginTypeRequest;
 import com.financial.stockapp.dto.request.OrderRequestDTO;
 import com.financial.stockapp.dto.response.*;
+import com.financial.stockapp.service.Impl.BinanceSyncService;
 import com.financial.stockapp.service.Impl.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OrderController {
     private final OrderService orderService;
+    private final BinanceSyncService binanceSyncService;
 
     @PostMapping("change-margin-type")
     public ResponseEntity<ChangeMarginTypeResponse> changeMarginType(@RequestBody ChangeMarginTypeRequest request){
@@ -58,6 +60,12 @@ public class OrderController {
                                                                   @RequestParam("orderId")long id){
         CancelBinanceOrderResponse response = orderService.cancelOrder(symbol, id);
         return  ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/exchangeInfo")
+    public ResponseEntity<?> getExchangeInfor(){
+        binanceSyncService.syncFuturesExchangeInfo();
+        return ResponseEntity.noContent().build();
     }
 
 }

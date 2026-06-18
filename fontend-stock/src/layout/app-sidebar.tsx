@@ -1,5 +1,5 @@
-import { Home, TrendingUp, Zap, Wallet, Grid3X3, Bot, PieChart, MessageCircle, Bell, Settings, KeyRound, User, CircleUser, LogOut } from 'lucide-react'
-import { href, Link, useLocation } from 'react-router-dom'
+import { Home, TrendingUp, Zap, Wallet, PieChart, MessageCircle, Bell, KeyRound, CircleUser, LogOut } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
 import { authService } from '../services/auth'
 
 const navItems = [
