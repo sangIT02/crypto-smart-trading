@@ -826,7 +826,7 @@ export const AiModelPage = () => {
       <AddAiModelModal
         show={showModal}
         onClose={() => setShowModal(false)}
-        onSubmit={(data) => {
+        onSubmit={(data: any) => {
           console.log("NEW MODEL:", data);
         }}
       />
