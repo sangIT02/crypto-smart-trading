@@ -67,7 +67,6 @@ export const LoginFormModal = ({ show, onClose }: LoginModalProps) => {
   };
 
   const handleLogout = () => {
-    
     authService.logout();
   };
 

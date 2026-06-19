@@ -7,7 +7,6 @@ import { LoginFormModal } from "../../components/LoginFormModal";
 
 
 
-const phoneRegex = /^(0|\+84)[0-9]{9}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_REGEX =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S{8,}$/;
@@ -36,7 +35,6 @@ export const RegisterPage = () => {
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const [confirmPassword, setConfirmPassword] = useState<string>("");
     const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
-    const [phoneError, setPhoneError] = useState("");
     const [emailError, setEmailError] = useState("");
     const [passwordError, setPasswordError] = useState<string>("");
     const [confirmPasswordError, setConfirmPasswordError] = useState<string>("");
