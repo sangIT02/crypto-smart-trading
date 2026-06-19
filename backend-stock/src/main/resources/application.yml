@@ -19,9 +19,13 @@ spring:
     type: redis
   data:
     redis:
-      host: localhost
+      host: musical-dassie-129898.upstash.io
       port: 6379
+      username: default
+      password: gQAAAAAAAftqAAIgcDIwMGJiMDJhYjQ4ZTE0Y2ZmYTY4YTNkNWJiMDc4MjgzMQ
       timeout: 60000
+      ssl: 
+        enabled: true
 
   mail:
     host: smtp.gmail.com
