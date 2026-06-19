@@ -10,8 +10,8 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**") // Áp dụng cho mọi API
-                .allowedOrigins("https://crypto-smart-trading.vercel.app"
-                    // "https://crypto-smart-trading-git-main-sang1000000k-gmailcoms-projects.vercel.app"
+                .allowedOrigins("https://crypto-smart-trading.vercel.app",
+                    "https://crypto-smart-trading-git-main-sang1000000k-gmailcoms-projects.vercel.app"
                 ) // Chỉ cho phép FE này truy cập
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // Cho phép các method này
                 .allowedHeaders("*")
