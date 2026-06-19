@@ -20,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
@@ -142,26 +144,41 @@ public class BinanceService {
 
 
     public void validateApiKey(String apiKey, String secretKey) {
-        try {
-            long timestamp = System.currentTimeMillis();
-            String queryString = "timestamp=" + timestamp;
-            String signature = signatureUtils.sign(queryString, secretKey);
-            webClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/fapi/v2/account")
-                            .queryParam("timestamp", timestamp)
-                            .queryParam("signature", signature)
-                            .build())
-                    .header("X-MBX-APIKEY", apiKey)  // API key để trong header
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();;
-        } catch (Exception ex) {
-            throw new InvalidBinanceApiException(
-                    "Invalid Binance API key or secret key."
-            );
-        }
+    try {
+        long timestamp = System.currentTimeMillis();
+        String queryString = "timestamp=" + timestamp;
+        
+        // Đảm bảo không có khoảng trắng thừa
+        String cleanApiKey = apiKey.trim();
+        String cleanSecretKey = secretKey.trim();
+        
+        String signature = signatureUtils.sign(queryString, cleanSecretKey);
+        
+        webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/fapi/v2/account")
+                        .queryParam("timestamp", timestamp)
+                        .queryParam("signature", signature)
+                        .build())
+                .header("X-MBX-APIKEY", cleanApiKey) 
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+                
+    } catch (WebClientResponseException ex) {
+        // Đây là nơi bắt lỗi trả về từ chính server Binance (như lỗi IP, lỗi time)
+        String binanceErrorBody = ex.getResponseBodyAsString();
+        System.err.println("BINANCE TỪ CHỐI REQUEST. Chi tiết: " + binanceErrorBody);
+        
+        // Ném nguyên câu lỗi của Binance ra để Frontend hoặc Log hiển thị
+        throw new RuntimeException("Lỗi từ Binance: " + binanceErrorBody);
+        
+    } catch (Exception ex) {
+        // Bắt các lỗi khác như sập mạng, timeout...
+        ex.printStackTrace();
+        throw new RuntimeException("Lỗi hệ thống khi gọi Binance: " + ex.getMessage());
     }
+}
 
 
     public BinanceStatusResponse getBinanceStatus() {
