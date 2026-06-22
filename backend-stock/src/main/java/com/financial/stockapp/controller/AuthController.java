@@ -34,15 +34,11 @@ public class AuthController {
     }
 
 
-//        @PostMapping("/register")
-//    public ApiResponse<?> register(@RequestBody RegisterRequestDTO dto){
-//        authService.register(dto);
-//        return ApiResponse.builder()
-//                .code(200)
-//                .data("success")
-//                .message("dang ki thanh cong")
-//                .build();
-//    }
+    @PostMapping("/register")
+    public ApiResponse<?> register(@RequestBody RegisterRequestDTO dto){
+        authService.register(dto);
+        return ApiResponse.success("success", "dang ki thanh cong");
+    }
 
     @PostMapping("/google")
     public ApiResponse<LoginResponse> loginGoogle(@RequestBody GoogleLoginRequest request, HttpServletRequest httprequest) throws GeneralSecurityException, IOException {

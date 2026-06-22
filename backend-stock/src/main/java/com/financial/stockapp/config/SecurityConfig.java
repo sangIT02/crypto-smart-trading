@@ -38,6 +38,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll() // public
+                        .requestMatchers("/api/users/sent-otp").permitAll()
+                        .requestMatchers("/api/users/verify-otp").permitAll()
                         .requestMatchers("/api/system/ping").permitAll()
                         .requestMatchers("/ws/**").permitAll() // CHO PHÉP TẤT CẢ truy cập vào endpoint WebSocket
                         .anyRequest().authenticated()

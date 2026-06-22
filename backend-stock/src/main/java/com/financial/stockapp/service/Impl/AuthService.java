@@ -53,6 +53,22 @@ public class AuthService {
     @Value("${google.client-id}")
     private  String GOOGLE_CLIENT_ID;
 
+    public void register(RegisterRequestDTO dto) {
+        String email = dto.getEmail();
+        User user = userRepository.findUserByEmail(email);
+        if (user != null) {
+            throw new UserAlreadyExist(null);
+        }
+        user = User.builder()
+                .email(email)
+                .username(email)
+                .password(encoder.encode(dto.getPassword()))
+                .role(roleRepository.findByName("USER"))
+                .authProvider("LOCAL")
+                .build();
+        userRepository.save(user);
+    }
+
     public void generateAndSendOtp(String email) {
         String otp = String.format("%06d",new Random().nextInt(999999));
         String key = "OTP" + email;
