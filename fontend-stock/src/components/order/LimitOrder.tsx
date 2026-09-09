@@ -106,9 +106,11 @@ export const LimitOrder = ({ symbol, leverage, setLeverage, marginMode, setMargi
       console.log("ORDER RESPONSE:", data);
     } catch (error: any) {
       if (error.response && error.response.data) {
-        const { message, binanceCode } = error.response.data;
-        // Hiển thị toast lỗi ra màn hình
-        toast.error(`Lỗi từ sàn (${binanceCode}): ${message}`);
+        const { message, binanceCode, error: errorName } = error.response.data;
+        const displayMessage = message || errorName || "Không thể đặt lệnh.";
+        toast.error(binanceCode !== undefined
+          ? `Lỗi từ sàn (${binanceCode}): ${displayMessage}`
+          : displayMessage);
       } else {
         toast.error("Lỗi hệ thống không xác định!");
       }

@@ -42,6 +42,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/verify-otp").permitAll()
                         .requestMatchers("/api/system/ping").permitAll()
                         .requestMatchers("/ws/**").permitAll() // CHO PHÉP TẤT CẢ truy cập vào endpoint WebSocket
+                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
 

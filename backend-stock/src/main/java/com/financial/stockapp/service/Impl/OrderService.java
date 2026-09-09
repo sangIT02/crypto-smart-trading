@@ -45,6 +45,7 @@ public class OrderService {
     private final IOrderRepository orderRepository;
     private final RedisTemplate<String,Object> redisTemplate;
     private final FunctionRestData functionRestData;
+    private final BinanceSyncService binanceSyncService;
     public ChangeMarginTypeResponse changeMarginType(ChangeMarginTypeRequest request){
         int userID = SecurityUtils.getCurrentUserId();
         GetAPIKeyDTO key = accountRepository.getByUserId(userID);
@@ -368,7 +369,12 @@ public class OrderService {
         payload.setType(type);
         payload.setTimeInForce(timeInForce);
 
-        SymbolInfoDTO symbolInfo = (SymbolInfoDTO) redisTemplate.opsForHash().get("binance:symbols", symbol);
+        SymbolInfoDTO symbolInfo = getSymbolInfo(symbol);
+        if (symbolInfo == null) {
+            // Redis may be empty after a restart. Refresh exchange rules once before rejecting the order.
+            binanceSyncService.syncFuturesExchangeInfo();
+            symbolInfo = getSymbolInfo(symbol);
+        }
         if (symbolInfo == null) {
             throw new InvalidOrderException("Symbol is not available for trading or exchange information is stale.");
         }
@@ -377,6 +383,15 @@ public class OrderService {
             throw new InvalidOrderException("Trading rules for this symbol are incomplete.");
         }
         return symbolInfo;
+    }
+
+    private SymbolInfoDTO getSymbolInfo(String symbol) {
+        try {
+            return (SymbolInfoDTO) redisTemplate.opsForHash().get("binance:symbols", symbol);
+        } catch (Exception ex) {
+            log.error("Unable to read Binance exchange rules from Redis", ex);
+            throw new InvalidOrderException("Cannot read Binance trading rules. Please check Redis and try again.");
+        }
     }
 
     private BigDecimal parsePositiveDecimal(String value, String field) {

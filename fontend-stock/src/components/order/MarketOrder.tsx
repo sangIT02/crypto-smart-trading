@@ -79,8 +79,11 @@ export const MarketOrder = ({ symbol, leverage, setLeverage, marginMode, setMarg
       triggerPositionRefresh();
     } catch (error: any) {
       if (error.response && error.response.data) {
-        const { message, binanceCode } = error.response.data;
-        toast.error(`Lỗi từ sàn (${binanceCode}): ${message}`);
+        const { message, binanceCode, error: errorName } = error.response.data;
+        const displayMessage = message || errorName || "Không thể đặt lệnh.";
+        toast.error(binanceCode !== undefined
+          ? `Lỗi từ sàn (${binanceCode}): ${displayMessage}`
+          : displayMessage);
       } else {
         toast.error("Lỗi hệ thống không xác định!");
       }
