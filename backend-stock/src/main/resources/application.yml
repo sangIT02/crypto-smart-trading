@@ -19,10 +19,10 @@ spring:
     type: redis
   data:
     redis:
-      host: musical-dassie-129898.upstash.io
+      host: calm-ocelot-179749.upstash.io
       port: 6379
       username: default
-      password: gQAAAAAAAftqAAIgcDIwMGJiMDJhYjQ4ZTE0Y2ZmYTY4YTNkNWJiMDc4MjgzMQ
+      password: gQAAAAAAAr4lAAIgcDFmYTQxZDI5MjUzMTM0Zjg5OGNmM2RjMTUxYWU2NjU3OA
       timeout: 60000
       ssl: 
         enabled: true
