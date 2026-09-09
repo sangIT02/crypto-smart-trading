@@ -5,8 +5,11 @@ import com.financial.stockapp.dto.request.ChangeLeverageRequest;
 import com.financial.stockapp.dto.request.ChangeMarginTypeRequest;
 import com.financial.stockapp.dto.request.GetAPIKeyDTO;
 import com.financial.stockapp.dto.request.OrderRequestDTO;
+import com.financial.stockapp.dto.request.FunctionDataRequest.MarketPriceRequest;
 import com.financial.stockapp.dto.response.*;
 import com.financial.stockapp.exception.BinanceApiException;
+import com.financial.stockapp.exception.InvalidOrderException;
+import com.financial.stockapp.dto.response.FunctionDataResponse.PriceMarketDataResponse;
 import com.financial.stockapp.repository.IBinanceAccountRepository;
 import com.financial.stockapp.repository.IOrderRepository;
 import com.financial.stockapp.repository.projection.SymbolOrderProjection;
@@ -41,6 +44,7 @@ public class OrderService {
     private final BinanceTimestampUtils timestampUtils;
     private final IOrderRepository orderRepository;
     private final RedisTemplate<String,Object> redisTemplate;
+    private final FunctionRestData functionRestData;
     public ChangeMarginTypeResponse changeMarginType(ChangeMarginTypeRequest request){
         int userID = SecurityUtils.getCurrentUserId();
         GetAPIKeyDTO key = accountRepository.getByUserId(userID);
@@ -115,6 +119,11 @@ public class OrderService {
     }
 
     public BinanceOrderResponse createLimitOrder(OrderRequestDTO payload){
+        SymbolInfoDTO symbolInfo = validateOrderPayload(payload, true);
+        BigDecimal price = parsePositiveDecimal(payload.getPrice(), "price");
+        BigDecimal quantity = parsePositiveDecimal(payload.getQuantity(), "quantity");
+        OrderValidateUtils.validateLimitOrder(symbolInfo, price, quantity);
+
         int userID = SecurityUtils.getCurrentUserId();
         GetAPIKeyDTO key = accountRepository.getByUserId(userID);
         String apiKey = encryptionService.decrypt(key.getApiKey());
@@ -269,17 +278,24 @@ public class OrderService {
     }
 
     public BinanceOrderResponse createMarketOrder(OrderRequestDTO payload){
+        SymbolInfoDTO symbolInfo = validateOrderPayload(payload, false);
+        BigDecimal quantity = parsePositiveDecimal(payload.getQuantity(), "quantity");
+        PriceMarketDataResponse marketPriceResponse = functionRestData.getMarketPriceBySymbol(
+                new MarketPriceRequest(payload.getSymbol()));
+        if (marketPriceResponse == null || marketPriceResponse.price() == null) {
+            throw new InvalidOrderException("Unable to determine the current market price.");
+        }
+        BigDecimal currentMarketPrice = parsePositiveDecimal(marketPriceResponse.price(), "market price");
+        OrderValidateUtils.validateMarketOrder(symbolInfo, quantity, currentMarketPrice);
+
         int userID = SecurityUtils.getCurrentUserId();
         GetAPIKeyDTO key = accountRepository.getByUserId(userID);
         String apiKey = encryptionService.decrypt(key.getApiKey());
         String secretKey = encryptionService.decrypt(key.getSecretKey());
 
-        SymbolInfoDTO dto = (SymbolInfoDTO) redisTemplate.opsForHash().get("binance:symbols", payload.getSymbol());
-
         long timestamp = timestampUtils.getBinanceServerTime();
         long recvWindow = 10000L; // Nới lỏng lên 60 giây
 
-        BigDecimal quantity = OrderValidateUtils.formatQuantity(new BigDecimal(payload.getQuantity()), dto.getStepSize());
         // 3. Tạo query string - PHẢI nối thêm recvWindow vào chuỗi để ký
         String queryString = String
                 .format("symbol=%s&side=%s&type=%s&quantity=%s&newOrderRespType=RESULT&recvWindow=10000&timestamp=%d",
@@ -316,6 +332,67 @@ public class OrderService {
                 })
                 .bodyToMono(BinanceOrderResponse.class)
                 .block();
+    }
+
+    private SymbolInfoDTO validateOrderPayload(OrderRequestDTO payload, boolean limitOrder) {
+        if (payload == null) {
+            throw new InvalidOrderException("Order payload is required.");
+        }
+
+        String symbol = normalize(payload.getSymbol());
+        String side = normalize(payload.getSide());
+        String type = normalize(payload.getType());
+        String timeInForce = normalize(payload.getTimeInForce());
+
+        if (symbol == null || !symbol.matches("[A-Z0-9]{2,20}")) {
+            throw new InvalidOrderException("Symbol is required and must be a valid Binance symbol.");
+        }
+        if (!"BUY".equals(side) && !"SELL".equals(side)) {
+            throw new InvalidOrderException("Side must be BUY or SELL.");
+        }
+        if (limitOrder) {
+            if (!"LIMIT".equals(type)) {
+                throw new InvalidOrderException("Limit endpoint only accepts type LIMIT.");
+            }
+            if (!List.of("GTC", "IOC", "FOK", "GTX").contains(timeInForce)) {
+                throw new InvalidOrderException("Limit order timeInForce must be GTC, IOC, FOK or GTX.");
+            }
+            payload.setPrice(parsePositiveDecimal(payload.getPrice(), "price").toPlainString());
+        } else if (!"MARKET".equals(type)) {
+            throw new InvalidOrderException("Market endpoint only accepts type MARKET.");
+        }
+
+        payload.setQuantity(parsePositiveDecimal(payload.getQuantity(), "quantity").toPlainString());
+        payload.setSymbol(symbol);
+        payload.setSide(side);
+        payload.setType(type);
+        payload.setTimeInForce(timeInForce);
+
+        SymbolInfoDTO symbolInfo = (SymbolInfoDTO) redisTemplate.opsForHash().get("binance:symbols", symbol);
+        if (symbolInfo == null) {
+            throw new InvalidOrderException("Symbol is not available for trading or exchange information is stale.");
+        }
+        if (symbolInfo.getTickSize() == null || symbolInfo.getMinQty() == null
+                || symbolInfo.getStepSize() == null || symbolInfo.getMinNotional() == null) {
+            throw new InvalidOrderException("Trading rules for this symbol are incomplete.");
+        }
+        return symbolInfo;
+    }
+
+    private BigDecimal parsePositiveDecimal(String value, String field) {
+        try {
+            BigDecimal number = new BigDecimal(value == null ? "" : value.trim());
+            if (number.signum() <= 0) {
+                throw new InvalidOrderException(field + " must be greater than zero.");
+            }
+            return number;
+        } catch (NumberFormatException ex) {
+            throw new InvalidOrderException(field + " must be a valid decimal number.");
+        }
+    }
+
+    private String normalize(String value) {
+        return value == null ? null : value.trim().toUpperCase();
     }
 
     public List<SymbolOrderDto> getSymbolTotal(){

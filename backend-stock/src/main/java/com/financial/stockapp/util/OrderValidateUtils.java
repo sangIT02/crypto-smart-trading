@@ -32,12 +32,21 @@ public class OrderValidateUtils {
     // --- Các hàm kiểm tra chi tiết (Private) ---
 
     private static void checkPrice(BigDecimal price, BigDecimal tickSize) {
+        if (price == null || tickSize == null || tickSize.signum() <= 0) {
+            throw new InvalidOrderException("Price and tick size must be valid positive numbers.");
+        }
         if (price.remainder(tickSize).compareTo(BigDecimal.ZERO) != 0) {
             throw new InvalidOrderException(String.format("Giá đặt (%s) không đúng bước giá quy định (%s).", price, tickSize));
         }
     }
 
     private static void checkQuantity(BigDecimal quantity, BigDecimal minQty, BigDecimal stepSize) {
+        if (quantity == null || minQty == null || stepSize == null || minQty.signum() <= 0 || stepSize.signum() <= 0) {
+            throw new InvalidOrderException("Quantity rules are invalid or unavailable.");
+        }
+        if (quantity.signum() <= 0) {
+            throw new InvalidOrderException("Quantity must be greater than zero.");
+        }
         if (quantity.compareTo(minQty) < 0) {
             throw new InvalidOrderException(String.format("Khối lượng (%s) nhỏ hơn mức tối thiểu (%s).", quantity, minQty));
         }
@@ -47,6 +56,9 @@ public class OrderValidateUtils {
     }
 
     private static void checkNotional(BigDecimal price, BigDecimal quantity, BigDecimal minNotional) {
+        if (price == null || quantity == null || minNotional == null || minNotional.signum() < 0) {
+            throw new InvalidOrderException("Order notional rules are invalid or unavailable.");
+        }
         BigDecimal notional = price.multiply(quantity);
         if (notional.compareTo(minNotional) < 0) {
             throw new InvalidOrderException(String.format("Tổng giá trị lệnh (%s USDT) nhỏ hơn mức tối thiểu cho phép (%s USDT).", notional, minNotional));
