@@ -49,15 +49,18 @@ spring:
     base-url: https://api.groq.com/openai/v1
     chat:
       options:
-        model: openai/gpt-oss-20b
+        model: gpt-oss-20b
   #gemini-3-flash-preview
   #gemini-2.5-flash-lite
   #gemini-2.5-flash
   rabbitmq:
-    host: localhost        # Địa chỉ server (nếu chạy Docker trên máy thì là localhost)
-    port: 5672             # Cổng kết nối của RabbitMQ (mặc định)
-    username: guest        # Tài khoản mặc định
-    password: guest        # Mật khẩu mặc định
+    host: armadillo-01.rmq.cloudamqp.com
+    port: 5671             # Thường là 5671 khi chạy CloudAMQP (hoặc 5672 nếu họ cho phép non-SSL)
+    username: fpfwtvqk
+    password: qxnre3qq8JjTmKowFjHNxmVdxnoTSMW2 # Đừng quên điền mật khẩu nhé
+    virtual-host: fpfwtvqk       # Thường trên CloudAMQP vhost có tên giống username
+    ssl:
+      enabled: true              # Bật nếu dùng port 5671 (AMQPS)
 
     # Cấu hình cho phía Gửi (Producer)
     template:
