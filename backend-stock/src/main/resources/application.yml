@@ -46,7 +46,7 @@ spring:
   ai:
     openai:
       api-key: ${GROQ_KEY}
-      base-url: https://api.groq.com/openai/v1
+      base-url: https://api.groq.com/openai
       chat:
         options:
           model: openai/gpt-oss-20b
